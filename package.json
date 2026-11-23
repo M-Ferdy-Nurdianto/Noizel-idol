@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Monorepo for Noize Official Website",
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "api"
+  ],
   "scripts": {
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ../api && npm install",
     "install:all:pnpm": "pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install && cd ../api && pnpm install",
@@ -13,7 +18,7 @@
     "dev": "concurrently --names \"API,WEB\" --prefix-colors \"cyan.bold,magenta.bold\" --kill-others-on-fail \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:pnpm": "concurrently --names \"API,WEB\" --prefix-colors \"cyan.bold,magenta.bold\" --kill-others-on-fail \"pnpm run dev:backend:pnpm\" \"pnpm run dev:frontend:pnpm\"",
     "start": "npm run dev",
-    "build": "cd frontend && npm install --ignore-scripts && npm run build",
+    "build": "cd frontend && npm run build",
     "build:frontend": "cd frontend && npm run build",
     "test": "cd backend && node --test tests/*.test.js",
     "start:backend": "cd backend && npm start",
