@@ -11,7 +11,7 @@ const DEFAULT_NEWS = [
     title: 'NOIZE Stage Debut: First Frequency Showcase 2026',
     summary: 'Penampilan panggung perdana NOIZE menghadirkan full lineup member dan setlist orisinal.',
     content: 'Kami dengan bangga mengumumkan debut penampilan live resmi NOIZE! Menampilkan seluruh member dengan kostum panggung khas dan aransemen musik bertenaga tinggi. Tiket panggung dan sesi Cheki tersedia untuk umum.',
-    image: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269664212_image_processing20260824_4000925_1cs3o3m_png.webp',
+    image: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269664212_image_processing20260824_4000925_1cs3o3m_png.webp',
     badgeBg: 'bg-[#24C6F5]/10 text-[#24C6F5] border-[#24C6F5]/30'
   },
   {
@@ -21,7 +21,7 @@ const DEFAULT_NEWS = [
     title: 'Debut Single "Distortion of Harmony" Segera Dirilis',
     summary: 'Eksplorasi musikalitas elektronik berenergi tinggi dengan vokal khas 4 member NOIZE.',
     content: 'Single perdana bertajuk "Distortion of Harmony" akan segera hadir di seluruh platform streaming digital (Spotify, Apple Music, YouTube Music). Nantikan premiere official visualizer di channel YouTube NOIZE.',
-    image: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269425434_image_processing20260824_4008041_bjfgi1_png.webp',
+    image: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269425434_image_processing20260824_4008041_bjfgi1_png.webp',
     badgeBg: 'bg-[#9D26FF]/10 text-[#9D26FF] border-[#9D26FF]/30'
   },
   {
@@ -31,7 +31,7 @@ const DEFAULT_NEWS = [
     title: 'Official Cheki & Merchandise Eksklusif Vol. 1',
     summary: 'Koleksi 2-Shot Cheki individual member dan Group Cheki edisi terbatas dapat dipesan melalui Shop resmi.',
     content: 'Katalog merchandise resmi pertama NOIZE kini telah dibuka! Dapatkan polaroid 2-shot bertandatangan member serta tiket Cheki pre-order sebelum slot kuota per sesi terpenuhi.',
-    image: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269529780_image_processing20260824_4009109_122is0d_png.webp',
+    image: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269529780_image_processing20260824_4009109_122is0d_png.webp',
     badgeBg: 'bg-[#FF1CE3]/10 text-[#FF1CE3] border-[#FF1CE3]/30'
   },
   {
@@ -41,7 +41,7 @@ const DEFAULT_NEWS = [
     title: 'Panduan Sesi Interaksi, Cheki & Tata Tertib Stage',
     summary: 'Informasi lengkap mengenai alur antrean 2-Shot, aturan pose foto, dan kenyamanan fans selama acara.',
     content: 'Demi kenyamanan bersama saat live stage dan sesi Cheki, mohon perhatikan aturan interaksi: dilarang kontak fisik berlebihan, durasi per sesi mengikuti nomor antrean tiket, dan dilarang merekam selama sesi Cheki berlangsung.',
-    image: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269698071_image_processing20260824_4011149_1iezoq8_png.webp',
+    image: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269698071_image_processing20260824_4011149_1iezoq8_png.webp',
     badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/30'
   }
 ]

@@ -21,7 +21,7 @@ const DEFAULT_MEMBERS = [
     hobi: 'Modelling & Watching Korean dramas',
     instagram: '@ttreshy',
     jikoshoukai: 'Visual & Center of NOIZE (1st Generation).',
-    image_url: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269664212_image_processing20260824_4000925_1cs3o3m_png.webp'
+    image_url: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269664212_image_processing20260824_4000925_1cs3o3m_png.webp'
   },
   {
     member_id: 'shin',
@@ -31,7 +31,7 @@ const DEFAULT_MEMBERS = [
     hobi: 'Singing, Dancing, Drawing, Editing',
     instagram: '@ss.shin_',
     jikoshoukai: '3rd Generation of NOIZE. Singing, Dancing, Drawing, Editing.',
-    image_url: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269529780_image_processing20260824_4009109_122is0d_png.webp'
+    image_url: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269529780_image_processing20260824_4009109_122is0d_png.webp'
   },
   {
     member_id: 'chivy',
@@ -41,7 +41,7 @@ const DEFAULT_MEMBERS = [
     hobi: 'Listening music, Wotagei, Watching Concert',
     instagram: '@catieffy',
     jikoshoukai: 'Lead Vocal of NOIZE (4th Generation).',
-    image_url: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269698071_image_processing20260824_4011149_1iezoq8_png.webp'
+    image_url: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269698071_image_processing20260824_4011149_1iezoq8_png.webp'
   },
   {
     member_id: 'yuna',
@@ -51,7 +51,7 @@ const DEFAULT_MEMBERS = [
     hobi: 'Gaming',
     instagram: '@fyuninaa09',
     jikoshoukai: '"Dancing In The Moonlight" Hallo kims!! it\'s Yuna or Nina!!',
-    image_url: 'http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269425434_image_processing20260824_4008041_bjfgi1_png.webp'
+    image_url: 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars/1795269425434_image_processing20260824_4008041_bjfgi1_png.webp'
   }
 ]
 

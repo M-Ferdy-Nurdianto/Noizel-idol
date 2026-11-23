@@ -1,9 +1,13 @@
+import { getAssetPath } from './pathUtils'
+
+const CLOUD_STORAGE_BASE = 'https://gyrzipnfnxvccakeejky.supabase.co/storage/v1/object/public/members/avatars'
+
 export const DEFAULT_HERO_MEMBERS = [
   {
     id: "iu",
     name: "IU",
     color: "bg-[#9D26FF]",
-    photo: "http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269664212_image_processing20260824_4000925_1cs3o3m_png.webp",
+    photo: getAssetPath(`${CLOUD_STORAGE_BASE}/1795269664212_image_processing20260824_4000925_1cs3o3m_png.webp`),
     posX: 57,
     posY: 30,
     scale: 1,
@@ -21,7 +25,7 @@ export const DEFAULT_HERO_MEMBERS = [
     id: "chivy",
     name: "CHIVY",
     color: "bg-[#9D26FF]",
-    photo: "http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269698071_image_processing20260824_4011149_1iezoq8_png.webp",
+    photo: getAssetPath(`${CLOUD_STORAGE_BASE}/1795269698071_image_processing20260824_4011149_1iezoq8_png.webp`),
     posX: 50,
     posY: 30,
     scale: 1,
@@ -39,7 +43,7 @@ export const DEFAULT_HERO_MEMBERS = [
     id: "shin",
     name: "SHIN",
     color: "bg-[#9D26FF]",
-    photo: "http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269529780_image_processing20260824_4009109_122is0d_png.webp",
+    photo: getAssetPath(`${CLOUD_STORAGE_BASE}/1795269529780_image_processing20260824_4009109_122is0d_png.webp`),
     posX: 72,
     posY: 0,
     scale: 1,
@@ -57,7 +61,7 @@ export const DEFAULT_HERO_MEMBERS = [
     id: "yuna",
     name: "YUNA",
     color: "bg-[#9D26FF]",
-    photo: "http://127.0.0.1:54421/storage/v1/object/public/members/avatars/1795269425434_image_processing20260824_4008041_bjfgi1_png.webp",
+    photo: getAssetPath(`${CLOUD_STORAGE_BASE}/1795269425434_image_processing20260824_4008041_bjfgi1_png.webp`),
     posX: 78,
     posY: 50,
     scale: 1,

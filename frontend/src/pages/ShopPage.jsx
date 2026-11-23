@@ -148,20 +148,16 @@ const ShopPage = () => {
   const getMemberImage = (member) => {
     if (member?.is_secret) {
       if (member.silhouette_image_url) {
-        if (member.silhouette_image_url.startsWith('http://') || member.silhouette_image_url.startsWith('https://')) return member.silhouette_image_url
-        if (member.silhouette_image_url.startsWith('/')) return getAssetPath(member.silhouette_image_url)
-        return getAssetPath(`/images/members/${member.silhouette_image_url}`)
+        return getAssetPath(member.silhouette_image_url)
       }
       return getAssetPath('/images/members/placeholder.svg')
     }
 
     if (member?.shop_image_url) {
-      if (member.shop_image_url.startsWith('http://') || member.shop_image_url.startsWith('https://')) return member.shop_image_url
-      if (member.shop_image_url.startsWith('/')) return getAssetPath(member.shop_image_url)
-      return getAssetPath(`/images/shop/${member.shop_image_url}`)
+      return getAssetPath(member.shop_image_url)
     }
-    if (member?.image_url && (member.image_url.startsWith('http://') || member.image_url.startsWith('https://'))) {
-      return member.image_url
+    if (member?.image_url) {
+      return getAssetPath(member.image_url)
     }
     const clean = member?.member_id || sanitizeName(member?.nama_panggung || '')
     if (clean) return getAssetPath(`/images/shop/${clean}.webp`)
