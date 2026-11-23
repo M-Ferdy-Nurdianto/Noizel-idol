@@ -165,11 +165,11 @@ const OrdersTab = ({
   }
 
   const handleTriggerExport = async (exportData) => {
-    const { format, scope, value } = exportData
+    const { format, scope, value, financialConfig } = exportData
     if (format === 'excel') {
-      await onExportExcel({ scope, value })
+      await onExportExcel({ scope, value, financialConfig })
     } else {
-      await onExportPdf({ scope, value })
+      await onExportPdf({ scope, value, financialConfig })
     }
   }
 

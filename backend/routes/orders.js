@@ -488,7 +488,39 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
 // GET: Export orders to Excel
 router.get('/export/excel', authMiddleware, async (req, res) => {
   try {
-    const { dateFrom, dateTo, status, is_ots, search, event_id, month } = req.query
+    const {
+      dateFrom, dateTo, status, is_ots, search, event_id, month,
+      include_salary,
+      fee_po, fee_po_mode,
+      fee_ots, fee_ots_mode,
+      modal_film, modal_film_mode,
+      honor_staff, honor_staff_mode,
+      group_po, group_po_mode,
+      group_ots, group_ots_mode,
+      event_fee
+    } = req.query
+
+    const includeSalary = include_salary !== 'false'
+    const feePo = Number(fee_po ?? 10000)
+    const feePoMode = fee_po_mode === 'percent' ? 'percent' : 'nominal'
+    const feeOts = Number(fee_ots ?? 15000)
+    const feeOtsMode = fee_ots_mode === 'percent' ? 'percent' : 'nominal'
+    const modalFilm = Number(modal_film ?? 15000)
+    const modalFilmMode = modal_film_mode === 'percent' ? 'percent' : 'nominal'
+    const honorStaff = Number(honor_staff ?? 2000)
+    const honorStaffMode = honor_staff_mode === 'percent' ? 'percent' : 'nominal'
+    const groupPo = Number(group_po ?? 15000)
+    const groupPoMode = group_po_mode === 'percent' ? 'percent' : 'nominal'
+    const groupOts = Number(group_ots ?? 20000)
+    const groupOtsMode = group_ots_mode === 'percent' ? 'percent' : 'nominal'
+    const flatEventFee = Number(event_fee ?? 0)
+
+    const calcRate = (nominalOrPct, mode, unitPrice) => {
+      if (mode === 'percent') {
+        return Math.round((Number(unitPrice) || 0) * (Number(nominalOrPct) / 100))
+      }
+      return Number(nominalOrPct) || 0
+    }
 
     let query = supabase
       .from('orders')
@@ -683,12 +715,19 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
           if (name.toLowerCase().includes('all member') || name.toLowerCase().includes('group')) {
             name = 'All Member (Group)'
           }
-          if (!memberStats[name]) memberStats[name] = { qty: 0, otsQty: 0, poQty: 0, revenue: 0 }
+          if (!memberStats[name]) memberStats[name] = { qty: 0, otsQty: 0, poQty: 0, revenue: 0, poRev: 0, otsRev: 0 }
           const qty = item.quantity || 0
+          const price = item.price || 0
+          const itemRev = qty * price
           memberStats[name].qty += qty
-          if (order.is_ots) memberStats[name].otsQty += qty
-          else memberStats[name].poQty += qty
-          memberStats[name].revenue += (qty * (item.price || 0))
+          if (order.is_ots) {
+            memberStats[name].otsQty += qty
+            memberStats[name].otsRev += itemRev
+          } else {
+            memberStats[name].poQty += qty
+            memberStats[name].poRev += itemRev
+          }
+          memberStats[name].revenue += itemRev
         })
       })
 
@@ -716,9 +755,10 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       eg.chekiSold = totalCheki
       grandTotalChekiSold += totalCheki
 
-      const modalCheki = totalCheki * 15000
-      const staffHonor = totalCheki * 2000
-      const groupPool = (groupPoQty * 15000) + (groupOtsQty * 20000)
+      const avgPrice = totalCheki > 0 ? (eg.revenue / totalCheki) : 50000
+      const modalCheki = totalCheki * calcRate(modalFilm, modalFilmMode, avgPrice)
+      const staffHonor = totalCheki * calcRate(honorStaff, honorStaffMode, avgPrice)
+      const groupPool = (groupPoQty * calcRate(groupPo, groupPoMode, avgPrice)) + (groupOtsQty * calcRate(groupOts, groupOtsMode, avgPrice))
 
       const individualMembers = Object.keys(memberStats).filter(n => !n.toLowerCase().includes('group') && !n.toLowerCase().includes('all member'))
       const activeMemberCount = individualMembers.length || 1
@@ -729,23 +769,30 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
 
       individualMembers.forEach(name => {
         const stats = memberStats[name]
-        const poFee = (stats.poQty || 0) * 10000
-        const otsFee = (stats.otsQty || 0) * 15000
+        const poQty = stats.poQty || 0
+        const otsQty = stats.otsQty || 0
+        const avgPoPrice = poQty > 0 ? (stats.poRev / poQty) : 50000
+        const avgOtsPrice = otsQty > 0 ? (stats.otsRev / otsQty) : 50000
+
+        const poFee = poQty * calcRate(feePo, feePoMode, avgPoPrice)
+        const otsFee = otsQty * calcRate(feeOts, feeOtsMode, avgOtsPrice)
         const groupShare = groupSharePerMember
-        const totalTakeHome = poFee + otsFee + groupShare
+        const flatFee = flatEventFee
+        const totalTakeHome = poFee + otsFee + groupShare + flatFee
 
         memberFeeDetails[name] = {
-          poQty: stats.poQty || 0,
+          poQty,
           poFee,
-          otsQty: stats.otsQty || 0,
+          otsQty,
           otsFee,
           groupShare,
+          flatFee,
           totalTakeHome
         }
         totalMemberFee += totalTakeHome
       })
 
-      const mgmtCut = (singlePoQty * 3000) + (singleOtsQty * 3000) + (groupPoQty * 8000) + (groupOtsQty * 13000)
+      const mgmtCut = Math.max(0, eg.revenue - modalCheki - staffHonor - totalMemberFee)
 
       eg.modalCheki = modalCheki
       eg.staffHonor = staffHonor
@@ -775,13 +822,13 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
     const titleRow = worksheet.addRow([titleText])
     mergeRow(titleRow.number, 'A', 'K', titleText, {
       font: { bold: true, size: 14, color: { argb: 'FFFFFFFF' } },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9D26FF' } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7928CA' } },
       alignment: { vertical: 'middle', horizontal: 'left' }
     })
 
     const subtitleRow = worksheet.addRow([`OFFICIAL SALES REPORT / ${new Date().toLocaleDateString('id-ID')}`])
     mergeRow(subtitleRow.number, 'A', 'K', subtitleRow.getCell(1).value, {
-      font: { bold: true, size: 10, color: { argb: 'FF166534' } },
+      font: { bold: true, size: 10, color: { argb: 'FF6B21A8' } },
       alignment: { vertical: 'middle', horizontal: 'left' }
     })
 
@@ -791,39 +838,39 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
     if (isMultiEvent) {
       const eventHeaderRow = worksheet.addRow([`EVENT TERLIBAT DALAM PERIODE INI (${distinctEvents.length} EVENT):`])
       mergeRow(eventHeaderRow.number, 'A', 'K', eventHeaderRow.getCell(1).value, {
-        font: { bold: true, color: { argb: 'FF166534' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D124D' } }
+        font: { bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } }
       })
       distinctEvents.forEach((eg, idx) => {
         const evRow = worksheet.addRow([`   ${idx + 1}. ${eg.fullLabel} | Lokasi: ${eg.lokasi} | Total: ${eg.orders.length} order (${eg.chekiSold} cheki)`])
         mergeRow(evRow.number, 'A', 'K', evRow.getCell(1).value, {
-          font: { color: { argb: 'FF065F46' }, size: 9.5 }
+          font: { color: { argb: 'FF4C1D95' }, size: 9.5 }
         })
       })
     } else {
       const singleEv = distinctEvents[0]
       const eventRow = worksheet.addRow(['EVENT', singleEv?.fullLabel || 'Semua Event'])
       worksheet.mergeCells(`B${eventRow.number}:K${eventRow.number}`)
-      eventRow.getCell(1).font = { bold: true, color: { argb: 'FF166534' } }
+      eventRow.getCell(1).font = { bold: true, color: { argb: 'FF7928CA' } }
       eventRow.getCell(2).font = { bold: true }
       if (singleEv?.lokasi) {
         const metaRow = worksheet.addRow(['LOKASI', singleEv.lokasi])
         worksheet.mergeCells(`B${metaRow.number}:K${metaRow.number}`)
-        metaRow.getCell(1).font = { bold: true, color: { argb: 'FF047857' } }
-        metaRow.getCell(2).font = { color: { argb: 'FF047857' } }
+        metaRow.getCell(1).font = { bold: true, color: { argb: 'FF6B21A8' } }
+        metaRow.getCell(2).font = { color: { argb: 'FF6B21A8' } }
       }
     }
 
     worksheet.addRow([])
 
-    // 2. KARTU RINGKASAN OMSET (WARNA HIJAU)
+    // 2. KARTU RINGKASAN OMSET (WARNA PURPLE / INDIGO)
     const summaryLabelRow = worksheet.addRow([])
     const summaryValueRow = worksheet.addRow([])
     const summaryBlocks = [
-      { start: 'A', end: 'C', label: isMultiEvent ? 'TOTAL OMSET BULANAN' : 'TOTAL OMSET (GROSS)', value: formatCurrency(grandTotalRevenue), color: 'FF166534' },
-      { start: 'D', end: 'E', label: 'TOTAL POLAROID', value: `${grandTotalChekiSold} units`, color: 'FF16A34A' },
-      { start: 'F', end: 'H', label: 'OTS ORDERS', value: `${grandTotalOtsOrders} orders`, color: 'FF059669' },
-      { start: 'I', end: 'K', label: 'PO ORDERS', value: `${grandTotalPoOrders} orders`, color: 'FF15803D' },
+      { start: 'A', end: 'C', label: isMultiEvent ? 'TOTAL OMSET BULANAN' : 'TOTAL OMSET (GROSS)', value: formatCurrency(grandTotalRevenue), color: 'FF6D28D9' },
+      { start: 'D', end: 'E', label: 'TOTAL POLAROID', value: `${grandTotalChekiSold} units`, color: 'FF7C3AED' },
+      { start: 'F', end: 'H', label: 'OTS ORDERS', value: `${grandTotalOtsOrders} orders`, color: 'FFD97706' },
+      { start: 'I', end: 'K', label: 'PO ORDERS', value: `${grandTotalPoOrders} orders`, color: 'FF0891B2' },
     ]
 
     summaryBlocks.forEach(block => {
@@ -833,8 +880,8 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       const valueCell = worksheet.getCell(`${block.start}${summaryValueRow.number}`)
       labelCell.value = block.label
       valueCell.value = block.value
-      labelCell.font = { bold: true, color: { argb: 'FF166534' } }
-      labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D124D' } }
+      labelCell.font = { bold: true, color: { argb: 'FF581C87' } }
+      labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
       labelCell.alignment = { vertical: 'middle', horizontal: 'center' }
       valueCell.font = { bold: true, color: { argb: block.color } }
       valueCell.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -845,262 +892,339 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
 
     worksheet.addRow([])
 
-    // 3. KARTU ALOKASI KAS & DIVIDEN (WARNA ELECTRIC VIOLET)
-    const dividenBannerText = isMultiEvent 
-      ? 'ALOKASI KAS & DIVIDEN BULANAN (SOP RESMI NOIZE)' 
-      : 'ALOKASI BIAYA & DIVIDEN EVENT (SOP RESMI NOIZE)'
+    // 3. KARTU ALOKASI KAS & DIVIDEN (JIKA INCLUDE SALARY AKTIF)
+    if (includeSalary) {
+      const dividenBannerText = isMultiEvent 
+        ? 'ALOKASI BIAYA & DIVIDEN BULANAN (ESTIMASI)' 
+        : 'ALOKASI BIAYA & DIVIDEN EVENT (ESTIMASI)'
 
-    const dividenTitleRow = worksheet.addRow([dividenBannerText])
-    mergeRow(dividenTitleRow.number, 'A', 'K', dividenBannerText, {
-      font: { bold: true, color: { argb: 'FFFFFFFF' } },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF065F46' } },
-      alignment: { vertical: 'middle', horizontal: 'left' }
-    })
-
-    const feeLabelRow = worksheet.addRow([])
-    const feeValueRow = worksheet.addRow([])
-    const feeBlocks = [
-      { start: 'A', end: 'C', label: 'MODAL FILM (15K/LBR)', value: formatCurrency(grandTotalModalCheki), color: 'FF064E3B', fill: 'FFD1FAE5' },
-      { start: 'D', end: 'E', label: 'HONOR STAFF (2K/LBR)', value: formatCurrency(grandTotalStaffHonor), color: 'FF15803D', fill: 'FFD1FAE5' },
-      { start: 'F', end: 'H', label: 'TOTAL GAJI/FEE MEMBER', value: formatCurrency(grandTotalMemberFees), color: 'FF9D26FF', fill: 'FF2D124D' },
-      { start: 'I', end: 'K', label: 'LABA BERSIH MANAJEMEN', value: formatCurrency(grandTotalManagementCut), color: 'FF166534', fill: 'FF2D124D' },
-    ]
-
-    feeBlocks.forEach(block => {
-      worksheet.mergeCells(`${block.start}${feeLabelRow.number}:${block.end}${feeLabelRow.number}`)
-      worksheet.mergeCells(`${block.start}${feeValueRow.number}:${block.end}${feeValueRow.number}`)
-      const labelCell = worksheet.getCell(`${block.start}${feeLabelRow.number}`)
-      const valueCell = worksheet.getCell(`${block.start}${feeValueRow.number}`)
-      labelCell.value = block.label
-      valueCell.value = block.value
-      labelCell.font = { bold: true, size: 9, color: { argb: block.color } }
-      labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: block.fill } }
-      labelCell.alignment = { vertical: 'middle', horizontal: 'center' }
-      valueCell.font = { bold: true, size: 11, color: { argb: block.color } }
-      valueCell.alignment = { vertical: 'middle', horizontal: 'center' }
-    })
-
-    applyBorders(feeLabelRow)
-    applyBorders(feeValueRow)
-
-    worksheet.addRow([])
-
-    // 4. MATRIKS GAJI BULANAN PER MEMBER (Jika Lebih Dari 1 Event)
-    if (isMultiEvent) {
-      const matrixTitle = `REKAP TOTAL GAJI BULANAN PER MEMBER (AKUMULASI ${distinctEvents.length} EVENT)`
-      const mRow = worksheet.addRow([matrixTitle])
-      mergeRow(mRow.number, 'A', 'K', matrixTitle, {
+      const dividenTitleRow = worksheet.addRow([dividenBannerText])
+      mergeRow(dividenTitleRow.number, 'A', 'K', dividenBannerText, {
         font: { bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9D26FF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
         alignment: { vertical: 'middle', horizontal: 'left' }
       })
 
-      // Buat Header Dinamis: Nama Member (A-C), Event-Event (D..), Total Bulanan (J-K)
-      const matrixHeaders = ['Nama Member / Talent', '', '']
-      distinctEvents.forEach((eg) => {
-        matrixHeaders.push(eg.nama.length > 15 ? eg.nama.substring(0, 15) + '..' : eg.nama)
-      })
-      while (matrixHeaders.length < 9) {
-        matrixHeaders.push('')
-      }
-      matrixHeaders.push('TOTAL GAJI BULANAN DITERIMA')
-      matrixHeaders.push('')
+      const feeLabelRow = worksheet.addRow([])
+      const feeValueRow = worksheet.addRow([])
+      const feeBlocks = [
+        { start: 'A', end: 'C', label: `MODAL FILM (${modalFilmMode === 'percent' ? modalFilm + '%' : formatCurrency(modalFilm)}/LBR)`, value: formatCurrency(grandTotalModalCheki), color: 'FF581C87', fill: 'FFF5F3FF' },
+        { start: 'D', end: 'E', label: `HONOR STAFF (${honorStaffMode === 'percent' ? honorStaff + '%' : formatCurrency(honorStaff)}/LBR)`, value: formatCurrency(grandTotalStaffHonor), color: 'FF6D28D9', fill: 'FFF5F3FF' },
+        { start: 'F', end: 'H', label: 'TOTAL GAJI/FEE MEMBER', value: formatCurrency(grandTotalMemberFees), color: 'FF7928CA', fill: 'FFF5F3FF' },
+        { start: 'I', end: 'K', label: 'LABA BERSIH MANAJEMEN', value: formatCurrency(grandTotalManagementCut), color: 'FF4338CA', fill: 'FFF5F3FF' },
+      ]
 
-      const mHeaderRow = worksheet.addRow(matrixHeaders)
-      worksheet.mergeCells(`A${mHeaderRow.number}:C${mHeaderRow.number}`)
-      worksheet.mergeCells(`J${mHeaderRow.number}:K${mHeaderRow.number}`)
-      mHeaderRow.font = { bold: true }
-      mHeaderRow.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D124D' } }
-        cell.alignment = { vertical: 'middle', horizontal: 'center' }
-      })
-      applyBorders(mHeaderRow)
-
-      allMembersList.forEach(mName => {
-        const rowVals = [mName, '', '']
-        let memberMonthTotal = 0
-        distinctEvents.forEach((eg) => {
-          const fee = eg.memberFeeDetails[mName]?.totalTakeHome || 0
-          memberMonthTotal += fee
-          rowVals.push(fee)
-        })
-        while (rowVals.length < 9) {
-          rowVals.push(0)
-        }
-        rowVals.push(memberMonthTotal)
-        rowVals.push('')
-
-        const r = worksheet.addRow(rowVals)
-        worksheet.mergeCells(`A${r.number}:C${r.number}`)
-        worksheet.mergeCells(`J${r.number}:K${r.number}`)
-        
-        r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
-        for (let col = 4; col <= 10; col++) {
-          r.getCell(col).numFmt = '"Rp" #,##0'
-          r.getCell(col).alignment = { vertical: 'middle', horizontal: 'right' }
-        }
-        r.getCell(10).font = { bold: true, color: { argb: 'FF9D26FF' } }
-        applyBorders(r)
+      feeBlocks.forEach(block => {
+        worksheet.mergeCells(`${block.start}${feeLabelRow.number}:${block.end}${feeLabelRow.number}`)
+        worksheet.mergeCells(`${block.start}${feeValueRow.number}:${block.end}${feeValueRow.number}`)
+        const labelCell = worksheet.getCell(`${block.start}${feeLabelRow.number}`)
+        const valueCell = worksheet.getCell(`${block.start}${feeValueRow.number}`)
+        labelCell.value = block.label
+        valueCell.value = block.value
+        labelCell.font = { bold: true, size: 9, color: { argb: block.color } }
+        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: block.fill } }
+        labelCell.alignment = { vertical: 'middle', horizontal: 'center' }
+        valueCell.font = { bold: true, size: 11, color: { argb: block.color } }
+        valueCell.alignment = { vertical: 'middle', horizontal: 'center' }
       })
 
-      // Total Matriks Row
-      const matrixTotalVals = ['TOTAL GAJI DIBAGIKAN KE MEMBER', '', '']
-      distinctEvents.forEach(eg => {
-        matrixTotalVals.push(eg.totalMemberFee)
-      })
-      while (matrixTotalVals.length < 9) {
-        matrixTotalVals.push(0)
-      }
-      matrixTotalVals.push(grandTotalMemberFees)
-      matrixTotalVals.push('')
-
-      const mTotRow = worksheet.addRow(matrixTotalVals)
-      worksheet.mergeCells(`A${mTotRow.number}:C${mTotRow.number}`)
-      worksheet.mergeCells(`J${mTotRow.number}:K${mTotRow.number}`)
-      mTotRow.font = { bold: true }
-      mTotRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } }
-      for (let col = 4; col <= 10; col++) {
-        mTotRow.getCell(col).numFmt = '"Rp" #,##0'
-        mTotRow.getCell(col).alignment = { vertical: 'middle', horizontal: 'right' }
-      }
-      mTotRow.getCell(10).font = { bold: true, color: { argb: 'FF166534' } }
-      applyBorders(mTotRow)
+      applyBorders(feeLabelRow)
+      applyBorders(feeValueRow)
 
       worksheet.addRow([])
-    }
 
-    // 5. RINCIAN PER EVENT (Jika multi-event, tampilkan per event. Jika single event, tampilkan langsung)
-    distinctEvents.forEach((eg, egIdx) => {
-      const sectionTitle = isMultiEvent 
-        ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}` 
-        : `RINCIAN FEE & GAJI MEMBER (PO 10k, OTS 15k, Grup dibagi rata ${eg.activeMemberCount} member)`
-
-      const evSecRow = worksheet.addRow([sectionTitle])
-      mergeRow(evSecRow.number, 'A', 'K', sectionTitle, {
-        font: { bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF065F46' } },
-        alignment: { vertical: 'middle', horizontal: 'left' }
-      })
-
-      // Mini-summary per event jika multi-event
+      // 4. MATRIKS GAJI BULANAN PER MEMBER (Jika Lebih Dari 1 Event)
       if (isMultiEvent) {
-        const miniLabelRow = worksheet.addRow([])
-        const miniValRow = worksheet.addRow([])
-        const miniBlocks = [
-          { start: 'A', end: 'C', label: 'OMSET EVENT', val: formatCurrency(eg.revenue) },
-          { start: 'D', end: 'E', label: 'MODAL FILM', val: formatCurrency(eg.modalCheki) },
-          { start: 'F', end: 'G', label: 'HONOR STAFF', val: formatCurrency(eg.staffHonor) },
-          { start: 'H', end: 'I', label: 'FEE MEMBER', val: formatCurrency(eg.totalMemberFee) },
-          { start: 'J', end: 'K', label: 'PROFIT MGMT', val: formatCurrency(eg.mgmtCut) }
-        ]
-        miniBlocks.forEach(b => {
-          worksheet.mergeCells(`${b.start}${miniLabelRow.number}:${b.end}${miniLabelRow.number}`)
-          worksheet.mergeCells(`${b.start}${miniValRow.number}:${b.end}${miniValRow.number}`)
-          miniLabelRow.getCell(b.start).value = b.label
-          miniValRow.getCell(b.start).value = b.val
-          miniLabelRow.getCell(b.start).font = { size: 8, bold: true, color: { argb: 'FF166534' } }
-          miniLabelRow.getCell(b.start).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D124D' } }
-          miniLabelRow.getCell(b.start).alignment = { horizontal: 'center' }
-          miniValRow.getCell(b.start).font = { size: 9, bold: true, color: { argb: 'FF065F46' } }
-          miniValRow.getCell(b.start).alignment = { horizontal: 'center' }
+        const matrixTitle = `REKAP TOTAL GAJI BULANAN PER MEMBER (AKUMULASI ${distinctEvents.length} EVENT)`
+        const mRow = worksheet.addRow([matrixTitle])
+        mergeRow(mRow.number, 'A', 'K', matrixTitle, {
+          font: { bold: true, color: { argb: 'FFFFFFFF' } },
+          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7928CA' } },
+          alignment: { vertical: 'middle', horizontal: 'left' }
         })
-        applyBorders(miniLabelRow)
-        applyBorders(miniValRow)
-      }
 
-      // Tabel member event ini
-      const evMemHeaderRow = worksheet.addRow([
-        'Nama Member / Talent', '', '',
-        'PO Qty', 'Fee PO (10k)',
-        'OTS Qty', 'Fee OTS (15k)',
-        'Share Grup', '',
-        'TOTAL FEE DITERIMA', ''
-      ])
-      worksheet.mergeCells(`A${evMemHeaderRow.number}:C${evMemHeaderRow.number}`)
-      worksheet.mergeCells(`H${evMemHeaderRow.number}:I${evMemHeaderRow.number}`)
-      worksheet.mergeCells(`J${evMemHeaderRow.number}:K${evMemHeaderRow.number}`)
-      evMemHeaderRow.font = { bold: true, size: 9.5 }
-      evMemHeaderRow.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D124D' } }
-        cell.alignment = { vertical: 'middle', horizontal: 'center' }
-      })
-      applyBorders(evMemHeaderRow)
+        const matrixHeaders = ['Nama Member / Talent', '', '']
+        distinctEvents.forEach((eg) => {
+          matrixHeaders.push(eg.nama.length > 15 ? eg.nama.substring(0, 15) + '..' : eg.nama)
+        })
+        while (matrixHeaders.length < 9) {
+          matrixHeaders.push('')
+        }
+        matrixHeaders.push('TOTAL GAJI BULANAN DITERIMA')
+        matrixHeaders.push('')
 
-      const evSortedMembers = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b))
-      if (evSortedMembers.length === 0) {
-        const emptyRow = worksheet.addRow(['-', '', '', '-', '-', '-', '-', '-', '', '-', ''])
-        worksheet.mergeCells(`A${emptyRow.number}:C${emptyRow.number}`)
-        worksheet.mergeCells(`H${emptyRow.number}:I${emptyRow.number}`)
-        worksheet.mergeCells(`J${emptyRow.number}:K${emptyRow.number}`)
-        applyBorders(emptyRow)
-      } else {
-        evSortedMembers.forEach(mName => {
-          const d = eg.memberFeeDetails[mName]
-          const r = worksheet.addRow([
-            mName, '', '',
-            d.poQty,
-            d.poFee,
-            d.otsQty,
-            d.otsFee,
-            d.groupShare, '',
-            d.totalTakeHome, ''
-          ])
+        const mHeaderRow = worksheet.addRow(matrixHeaders)
+        worksheet.mergeCells(`A${mHeaderRow.number}:C${mHeaderRow.number}`)
+        worksheet.mergeCells(`J${mHeaderRow.number}:K${mHeaderRow.number}`)
+        mHeaderRow.font = { bold: true }
+        mHeaderRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+          cell.alignment = { vertical: 'middle', horizontal: 'center' }
+        })
+        applyBorders(mHeaderRow)
+
+        allMembersList.forEach(mName => {
+          const rowVals = [mName, '', '']
+          let memberMonthTotal = 0
+          distinctEvents.forEach((eg) => {
+            const fee = eg.memberFeeDetails[mName]?.totalTakeHome || 0
+            memberMonthTotal += fee
+            rowVals.push(fee)
+          })
+          while (rowVals.length < 9) {
+            rowVals.push(0)
+          }
+          rowVals.push(memberMonthTotal)
+          rowVals.push('')
+
+          const r = worksheet.addRow(rowVals)
           worksheet.mergeCells(`A${r.number}:C${r.number}`)
-          worksheet.mergeCells(`H${r.number}:I${r.number}`)
           worksheet.mergeCells(`J${r.number}:K${r.number}`)
-
-          r.getCell(5).numFmt = '"Rp" #,##0'
-          r.getCell(7).numFmt = '"Rp" #,##0'
-          r.getCell(8).numFmt = '"Rp" #,##0'
-          r.getCell(10).numFmt = '"Rp" #,##0'
-
+          
           r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
-          r.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' }
-          r.getCell(5).alignment = { vertical: 'middle', horizontal: 'right' }
-          r.getCell(6).alignment = { vertical: 'middle', horizontal: 'center' }
-          r.getCell(7).alignment = { vertical: 'middle', horizontal: 'right' }
-          r.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' }
-          r.getCell(10).alignment = { vertical: 'middle', horizontal: 'right' }
-          r.getCell(10).font = { bold: true, color: { argb: 'FF9D26FF' } }
+          for (let col = 4; col <= 10; col++) {
+            r.getCell(col).numFmt = '"Rp" #,##0'
+            r.getCell(col).alignment = { vertical: 'middle', horizontal: 'right' }
+          }
+          r.getCell(10).font = { bold: true, color: { argb: 'FF7928CA' } }
           applyBorders(r)
         })
 
-        // Subtotal row event
-        const subTotRow = worksheet.addRow([
-          `SUBTOTAL FEE EVENT (${eg.nama})`, '', '',
-          eg.singlePoQty,
-          eg.singlePoQty * 10000,
-          eg.singleOtsQty,
-          eg.singleOtsQty * 15000,
-          eg.groupPool, '',
-          eg.totalMemberFee, ''
-        ])
-        worksheet.mergeCells(`A${subTotRow.number}:C${subTotRow.number}`)
-        worksheet.mergeCells(`H${subTotRow.number}:I${subTotRow.number}`)
-        worksheet.mergeCells(`J${subTotRow.number}:K${subTotRow.number}`)
-        subTotRow.font = { bold: true }
-        subTotRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } }
-        subTotRow.getCell(5).numFmt = '"Rp" #,##0'
-        subTotRow.getCell(7).numFmt = '"Rp" #,##0'
-        subTotRow.getCell(8).numFmt = '"Rp" #,##0'
-        subTotRow.getCell(10).numFmt = '"Rp" #,##0'
-        subTotRow.getCell(10).font = { bold: true, color: { argb: 'FF166534' } }
-        subTotRow.eachCell((cell, colNumber) => {
-          if (colNumber >= 4) {
-            cell.alignment = { vertical: 'middle', horizontal: [4, 6].includes(colNumber) ? 'center' : 'right' }
-          }
+        const matrixTotalVals = ['TOTAL GAJI DIBAGIKAN KE MEMBER', '', '']
+        distinctEvents.forEach(eg => {
+          matrixTotalVals.push(eg.totalMemberFee)
         })
-        applyBorders(subTotRow)
+        while (matrixTotalVals.length < 9) {
+          matrixTotalVals.push(0)
+        }
+        matrixTotalVals.push(grandTotalMemberFees)
+        matrixTotalVals.push('')
+
+        const mTotRow = worksheet.addRow(matrixTotalVals)
+        worksheet.mergeCells(`A${mTotRow.number}:C${mTotRow.number}`)
+        worksheet.mergeCells(`J${mTotRow.number}:K${mTotRow.number}`)
+        mTotRow.font = { bold: true }
+        mTotRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+        for (let col = 4; col <= 10; col++) {
+          mTotRow.getCell(col).numFmt = '"Rp" #,##0'
+          mTotRow.getCell(col).alignment = { vertical: 'middle', horizontal: 'right' }
+        }
+        mTotRow.getCell(10).font = { bold: true, color: { argb: 'FF6D28D9' } }
+        applyBorders(mTotRow)
+
+        worksheet.addRow([])
       }
 
-      worksheet.addRow([])
+      // 5. RINCIAN PER EVENT
+      distinctEvents.forEach((eg, egIdx) => {
+        const feePoLabel = feePoMode === 'percent' ? `${feePo}%` : `${Math.round(feePo/1000)}k`
+        const feeOtsLabel = feeOtsMode === 'percent' ? `${feeOts}%` : `${Math.round(feeOts/1000)}k`
+        const sectionTitle = isMultiEvent 
+          ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}` 
+          : `RINCIAN FEE & GAJI MEMBER (PO ${feePoLabel}, OTS ${feeOtsLabel}, Grup dibagi rata ${eg.activeMemberCount} member)`
+
+        const evSecRow = worksheet.addRow([sectionTitle])
+        mergeRow(evSecRow.number, 'A', 'K', sectionTitle, {
+          font: { bold: true, color: { argb: 'FFFFFFFF' } },
+          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
+          alignment: { vertical: 'middle', horizontal: 'left' }
+        })
+
+        if (isMultiEvent) {
+          const miniLabelRow = worksheet.addRow([])
+          const miniValRow = worksheet.addRow([])
+          const miniBlocks = [
+            { start: 'A', end: 'C', label: 'OMSET EVENT', val: formatCurrency(eg.revenue) },
+            { start: 'D', end: 'E', label: 'MODAL FILM', val: formatCurrency(eg.modalCheki) },
+            { start: 'F', end: 'G', label: 'HONOR STAFF', val: formatCurrency(eg.staffHonor) },
+            { start: 'H', end: 'I', label: 'FEE MEMBER', val: formatCurrency(eg.totalMemberFee) },
+            { start: 'J', end: 'K', label: 'PROFIT MGMT', val: formatCurrency(eg.mgmtCut) }
+          ]
+          miniBlocks.forEach(b => {
+            worksheet.mergeCells(`${b.start}${miniLabelRow.number}:${b.end}${miniLabelRow.number}`)
+            worksheet.mergeCells(`${b.start}${miniValRow.number}:${b.end}${miniValRow.number}`)
+            miniLabelRow.getCell(b.start).value = b.label
+            miniValRow.getCell(b.start).value = b.val
+            miniLabelRow.getCell(b.start).font = { size: 8, bold: true, color: { argb: 'FF581C87' } }
+            miniLabelRow.getCell(b.start).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+            miniLabelRow.getCell(b.start).alignment = { horizontal: 'center' }
+            miniValRow.getCell(b.start).font = { size: 9, bold: true, color: { argb: 'FF6D28D9' } }
+            miniValRow.getCell(b.start).alignment = { horizontal: 'center' }
+          })
+          applyBorders(miniLabelRow)
+          applyBorders(miniValRow)
+        }
+
+        const evMemHeaderRow = worksheet.addRow([
+          'Nama Member / Talent', '', '',
+          'PO Qty', `Fee PO (${feePoLabel})`,
+          'OTS Qty', `Fee OTS (${feeOtsLabel})`,
+          'Share Grup & Fee', '',
+          'TOTAL FEE DITERIMA', ''
+        ])
+        worksheet.mergeCells(`A${evMemHeaderRow.number}:C${evMemHeaderRow.number}`)
+        worksheet.mergeCells(`H${evMemHeaderRow.number}:I${evMemHeaderRow.number}`)
+        worksheet.mergeCells(`J${evMemHeaderRow.number}:K${evMemHeaderRow.number}`)
+        evMemHeaderRow.font = { bold: true, size: 9.5 }
+        evMemHeaderRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+          cell.alignment = { vertical: 'middle', horizontal: 'center' }
+        })
+        applyBorders(evMemHeaderRow)
+
+        const evSortedMembers = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b))
+        if (evSortedMembers.length === 0) {
+          const emptyRow = worksheet.addRow(['-', '', '', '-', '-', '-', '-', '-', '', '-', ''])
+          worksheet.mergeCells(`A${emptyRow.number}:C${emptyRow.number}`)
+          worksheet.mergeCells(`H${emptyRow.number}:I${emptyRow.number}`)
+          worksheet.mergeCells(`J${emptyRow.number}:K${emptyRow.number}`)
+          applyBorders(emptyRow)
+        } else {
+          evSortedMembers.forEach(mName => {
+            const d = eg.memberFeeDetails[mName]
+            const r = worksheet.addRow([
+              mName, '', '',
+              d.poQty,
+              d.poFee,
+              d.otsQty,
+              d.otsFee,
+              (d.groupShare || 0) + (d.flatFee || 0), '',
+              d.totalTakeHome, ''
+            ])
+            worksheet.mergeCells(`A${r.number}:C${r.number}`)
+            worksheet.mergeCells(`H${r.number}:I${r.number}`)
+            worksheet.mergeCells(`J${r.number}:K${r.number}`)
+
+            r.getCell(5).numFmt = '"Rp" #,##0'
+            r.getCell(7).numFmt = '"Rp" #,##0'
+            r.getCell(8).numFmt = '"Rp" #,##0'
+            r.getCell(10).numFmt = '"Rp" #,##0'
+
+            r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+            r.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' }
+            r.getCell(5).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(6).alignment = { vertical: 'middle', horizontal: 'center' }
+            r.getCell(7).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(10).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(10).font = { bold: true, color: { argb: 'FF7928CA' } }
+            applyBorders(r)
+          })
+
+          const subTotRow = worksheet.addRow([
+            `SUBTOTAL FEE EVENT (${eg.nama})`, '', '',
+            eg.singlePoQty,
+            Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.poFee || 0), 0),
+            eg.singleOtsQty,
+            Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.otsFee || 0), 0),
+            eg.groupPool + (flatEventFee * eg.activeMemberCount), '',
+            eg.totalMemberFee, ''
+          ])
+          worksheet.mergeCells(`A${subTotRow.number}:C${subTotRow.number}`)
+          worksheet.mergeCells(`H${subTotRow.number}:I${subTotRow.number}`)
+          worksheet.mergeCells(`J${subTotRow.number}:K${subTotRow.number}`)
+          subTotRow.font = { bold: true }
+          subTotRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+          subTotRow.getCell(5).numFmt = '"Rp" #,##0'
+          subTotRow.getCell(7).numFmt = '"Rp" #,##0'
+          subTotRow.getCell(8).numFmt = '"Rp" #,##0'
+          subTotRow.getCell(10).numFmt = '"Rp" #,##0'
+          subTotRow.getCell(10).font = { bold: true, color: { argb: 'FF6D28D9' } }
+          subTotRow.eachCell((cell, colNumber) => {
+            if (colNumber >= 4) {
+              cell.alignment = { vertical: 'middle', horizontal: [4, 6].includes(colNumber) ? 'center' : 'right' }
+            }
+          })
+          applyBorders(subTotRow)
+        }
+
+        worksheet.addRow([])
+      })
+    }
+
+    // 6. MEMBER SALES PERFORMANCE (SELALU TAMPIL)
+    const perfTitleRow = worksheet.addRow(['PERFORMA PENJUALAN MEMBER (MEMBER PERFORMANCE)'])
+    mergeRow(perfTitleRow.number, 'A', 'K', 'PERFORMA PENJUALAN MEMBER (MEMBER PERFORMANCE)', {
+      font: { bold: true, color: { argb: 'FFFFFFFF' } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
+      alignment: { vertical: 'middle', horizontal: 'left' }
     })
 
-    // 6. DETAIL TRANSAKSI LENGKAP (DENGAN KOLOM EVENT)
+    const perfHeaderRow = worksheet.addRow([
+      'Nama Member / Lineup', '', '',
+      'Total Polaroid (Qty)', '',
+      'OTS Polaroid (Qty)', '',
+      'PO Polaroid (Qty)', '',
+      'Total Omset (Revenue)', ''
+    ])
+    worksheet.mergeCells(`A${perfHeaderRow.number}:C${perfHeaderRow.number}`)
+    worksheet.mergeCells(`D${perfHeaderRow.number}:E${perfHeaderRow.number}`)
+    worksheet.mergeCells(`F${perfHeaderRow.number}:G${perfHeaderRow.number}`)
+    worksheet.mergeCells(`H${perfHeaderRow.number}:I${perfHeaderRow.number}`)
+    worksheet.mergeCells(`J${perfHeaderRow.number}:K${perfHeaderRow.number}`)
+    perfHeaderRow.font = { bold: true, size: 9.5 }
+    perfHeaderRow.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+      cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
+    applyBorders(perfHeaderRow)
+
+    const aggregatedMemberPerf = {}
+    distinctEvents.forEach(eg => {
+      Object.entries(eg.memberStats || {}).forEach(([mName, stats]) => {
+        if (!aggregatedMemberPerf[mName]) {
+          aggregatedMemberPerf[mName] = { qty: 0, otsQty: 0, poQty: 0, revenue: 0 }
+        }
+        aggregatedMemberPerf[mName].qty += (stats.qty || 0)
+        aggregatedMemberPerf[mName].otsQty += (stats.otsQty || 0)
+        aggregatedMemberPerf[mName].poQty += (stats.poQty || 0)
+        aggregatedMemberPerf[mName].revenue += (stats.revenue || 0)
+      })
+    })
+
+    const sortedPerfNames = Object.keys(aggregatedMemberPerf).sort((a, b) => a.localeCompare(b))
+    if (sortedPerfNames.length === 0) {
+      const emptyRow = worksheet.addRow(['-', '', '', '-', '', '-', '', '-', '', '-', ''])
+      worksheet.mergeCells(`A${emptyRow.number}:C${emptyRow.number}`)
+      worksheet.mergeCells(`D${emptyRow.number}:E${emptyRow.number}`)
+      worksheet.mergeCells(`F${emptyRow.number}:G${emptyRow.number}`)
+      worksheet.mergeCells(`H${emptyRow.number}:I${emptyRow.number}`)
+      worksheet.mergeCells(`J${emptyRow.number}:K${emptyRow.number}`)
+      applyBorders(emptyRow)
+    } else {
+      sortedPerfNames.forEach(mName => {
+        const p = aggregatedMemberPerf[mName]
+        const r = worksheet.addRow([
+          mName, '', '',
+          p.qty, '',
+          p.otsQty, '',
+          p.poQty, '',
+          p.revenue, ''
+        ])
+        worksheet.mergeCells(`A${r.number}:C${r.number}`)
+        worksheet.mergeCells(`D${r.number}:E${r.number}`)
+        worksheet.mergeCells(`F${r.number}:G${r.number}`)
+        worksheet.mergeCells(`H${r.number}:I${r.number}`)
+        worksheet.mergeCells(`J${r.number}:K${r.number}`)
+
+        r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+        r.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' }
+        r.getCell(6).alignment = { vertical: 'middle', horizontal: 'center' }
+        r.getCell(8).alignment = { vertical: 'middle', horizontal: 'center' }
+        r.getCell(10).alignment = { vertical: 'middle', horizontal: 'right' }
+        r.getCell(10).numFmt = '"Rp" #,##0'
+        r.getCell(10).font = { bold: true, color: { argb: 'FF6D28D9' } }
+        applyBorders(r)
+      })
+    }
+
+    worksheet.addRow([])
+
+    // 7. DETAIL TRANSAKSI LENGKAP (DENGAN KOLOM EVENT)
     const detailsTitleRow = worksheet.addRow(['DETAIL TRANSAKSI PESANAN'])
     mergeRow(detailsTitleRow.number, 'A', 'K', 'DETAIL TRANSAKSI PESANAN', {
       font: { bold: true, color: { argb: 'FFFFFFFF' } },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF065F46' } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
       alignment: { vertical: 'middle', horizontal: 'left' }
     })
 
@@ -1156,9 +1280,9 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
     const allOtsOrders = orders.filter(o => o.is_ots)
     const allPoOrders = orders.filter(o => !o.is_ots)
 
-    addOrderSection('TRANSAKSI ON THE SPOT (OTS)', 'FF059669', allOtsOrders)
+    addOrderSection('TRANSAKSI ON THE SPOT (OTS)', 'FFD97706', allOtsOrders)
     worksheet.addRow([])
-    addOrderSection('TRANSAKSI PRE-ORDER (PO)', 'FF15803D', allPoOrders)
+    addOrderSection('TRANSAKSI PRE-ORDER (PO)', 'FF0891B2', allPoOrders)
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     res.setHeader('Content-Disposition', `attachment; filename=Noize_Report_${Date.now()}.xlsx`)

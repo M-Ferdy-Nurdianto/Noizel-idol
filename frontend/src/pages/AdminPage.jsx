@@ -619,14 +619,14 @@ const AdminPage = () => {
     setShowOrderDetailModal(true)
   }
 
-  const handleExportExcel = async ({ scope, value }) => {
+  const handleExportExcel = async ({ scope, value, financialConfig }) => {
     const params = scope === 'current' ? buildOrderParams() : {}
-    await generateExcel({ scope, value, params, events, api })
+    await generateExcel({ scope, value, params, events, api, financialConfig })
   }
 
-  const handleExportPdf = async ({ scope, value }) => {
+  const handleExportPdf = async ({ scope, value, financialConfig }) => {
     const params = scope === 'current' ? buildOrderParams() : {}
-    await generatePDF({ scope, value, params, events, api })
+    await generatePDF({ scope, value, params, events, api, financialConfig })
   }
 
   const handleExportMerchExcel = async (exportOpts) => {

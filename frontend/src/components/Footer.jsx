@@ -114,8 +114,20 @@ const Footer = () => {
 
         </div>
 
-        <div className="mt-12 pt-8 border-t border-[#272438] flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-[#94A3B8] font-medium font-mono">
-          <p>{footerSettings.copyright || '© 2026 NOIZE. ALL RIGHTS RESERVED.'}</p>
+        <div className="mt-12 pt-8 border-t border-[#272438] flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-[#94A3B8] font-medium font-mono">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
+            <p>{footerSettings.copyright || '© 2026 NOIZE. ALL RIGHTS RESERVED.'}</p>
+            <span className="hidden sm:inline text-zinc-700">•</span>
+            <a 
+              href="https://instagram.com/ikifer" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors tracking-wider"
+              title="Website Creator"
+            >
+              site by <span className="underline decoration-zinc-800 underline-offset-2">@ikifer</span>
+            </a>
+          </div>
           <div className="flex gap-6">
             <Link to="/admin/login" className="hover:text-[#9D26FF] transition-colors">Staff / Admin Login</Link>
             <a href="/#faq" className="hover:text-[#9D26FF] transition-colors">FAQ</a>

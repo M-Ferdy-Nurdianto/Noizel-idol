@@ -52,9 +52,26 @@ export const getMerchUnitEconomics = (productName, avgPrice) => {
   }
 }
 
-export const generateExcel = async ({ scope, value, params, events, api }) => {
+export const generateExcel = async ({ scope, value, params, events, api, financialConfig }) => {
   try {
     const exportParams = { ...params }
+
+    if (financialConfig) {
+      exportParams.include_salary = financialConfig.includeSalary ? 'true' : 'false'
+      exportParams.fee_po = financialConfig.feePoMember
+      exportParams.fee_po_mode = financialConfig.feePoMode
+      exportParams.fee_ots = financialConfig.feeOtsMember
+      exportParams.fee_ots_mode = financialConfig.feeOtsMode
+      exportParams.modal_film = financialConfig.modalFilm
+      exportParams.modal_film_mode = financialConfig.modalFilmMode
+      exportParams.honor_staff = financialConfig.honorStaff
+      exportParams.honor_staff_mode = financialConfig.honorStaffMode
+      exportParams.group_po = financialConfig.groupPoPool
+      exportParams.group_po_mode = financialConfig.groupPoMode
+      exportParams.group_ots = financialConfig.groupOtsPool
+      exportParams.group_ots_mode = financialConfig.groupOtsMode
+      exportParams.event_fee = financialConfig.eventFeePerMember
+    }
 
     if (scope === 'event') {
       exportParams.event_id = value
@@ -203,7 +220,13 @@ const loadLogoDataUrl = async () => {
       const ctx = canvas.getContext('2d')
       ctx.drawImage(image, 0, 0)
       URL.revokeObjectURL(image.src)
-      return canvas.toDataURL('image/png')
+      const dataUrl = canvas.toDataURL('image/png')
+      return {
+        dataUrl,
+        width: image.width,
+        height: image.height,
+        ratio: (image.width && image.height) ? (image.width / image.height) : 1.5
+      }
     } catch (error) {
       // Try next logo path
     }
@@ -379,14 +402,19 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
     })
 
     // Inisialisasi Dokumen PDF Portrait A4
-    const logoDataUrl = await loadLogoDataUrl()
+    const logoObj = await loadLogoDataUrl()
+    const logoDataUrl = logoObj?.dataUrl || (typeof logoObj === 'string' ? logoObj : null)
+    const logoRatio = logoObj?.ratio || 1.5
     const doc = new jsPDF('p', 'mm', 'a4')
 
-    // 1. Header Banner Hijau (#0B8A1F) + Logo
-    doc.setFillColor(11, 138, 31)
+    // 1. Header Banner Ungu NOIZE (#7928CA) + Logo Proporsional
+    doc.setFillColor(121, 40, 202)
     doc.rect(0, 0, 210, 24, 'F')
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', 14, 5, 14, 14)
+      const logoH = 15
+      const logoW = Math.min(32, Math.round(logoH * logoRatio * 10) / 10)
+      const logoY = (24 - logoH) / 2
+      doc.addImage(logoDataUrl, 'PNG', 14, logoY, logoW, logoH)
     }
     let headerTitle = 'NOIZE - LAPORAN MERCH'
     let displayScope = batchName || 'Semua Batch'
@@ -411,7 +439,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
     doc.text(headerTitle, 105, 15, { align: 'center' })
 
     // Info Tanggal & Cakupan
-    doc.setTextColor(30, 41, 59)
+    doc.setTextColor(107, 33, 168)
     doc.setFontSize(8.5)
     doc.setFont('helvetica', 'normal')
     doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 14, 31)
@@ -429,21 +457,21 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
           `${totalOrders} order`
         ],
         [
-          { content: `${paidOrders.length} order lunas`, styles: { fontSize: 7, fontStyle: 'normal', textColor: [22, 101, 52] } },
+          { content: `${paidOrders.length} order lunas`, styles: { fontSize: 7, fontStyle: 'normal', textColor: [109, 40, 217] } },
           { content: `${pendingOrders.length} order pending`, styles: { fontSize: 7, fontStyle: 'normal', textColor: [180, 83, 9] } },
-          { content: 'Total item terjual', styles: { fontSize: 7, fontStyle: 'normal', textColor: [5, 150, 105] } },
+          { content: 'Total item terjual', styles: { fontSize: 7, fontStyle: 'normal', textColor: [124, 58, 237] } },
           { content: 'Semua status transaksi', styles: { fontSize: 7, fontStyle: 'normal', textColor: [71, 85, 105] } }
         ]
       ],
       theme: 'grid',
       styles: { fontSize: 8.5, halign: 'center', cellPadding: 2 },
-      headStyles: { fillColor: [240, 253, 244], textColor: [22, 101, 52], fontStyle: 'bold', fontSize: 7.5 },
+      headStyles: { fillColor: [245, 243, 255], textColor: [107, 33, 168], fontStyle: 'bold', fontSize: 7.5 },
       bodyStyles: { fontStyle: 'bold' },
       columnStyles: {
-        0: { textColor: [21, 128, 61], cellWidth: 45.5 },
+        0: { textColor: [109, 40, 217], cellWidth: 45.5 },
         1: { textColor: [180, 83, 9], cellWidth: 45.5 },
-        2: { textColor: [5, 150, 105], cellWidth: 45.5 },
-        3: { textColor: [30, 41, 59], cellWidth: 45.5 }
+        2: { textColor: [124, 58, 237], cellWidth: 45.5 },
+        3: { textColor: [71, 85, 105], cellWidth: 45.5 }
       },
       margin: { left: 14, right: 14 }
     })
@@ -491,14 +519,14 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
 
     if (hppTableRows.length > 0) {
       hppTableRows.push([
-        { content: 'TOTAL KESELURUHAN', styles: { fontStyle: 'bold', fillColor: [220, 252, 231] } },
-        { content: `${totalTerjual} pcs`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [220, 252, 231] } },
-        { content: formatCurrency(lunasRevenue || grandTotalRevenue), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-        { content: formatCurrency(aggProduksi), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-        { content: formatCurrency(aggKardus), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-        { content: formatCurrency(aggFreebies), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-        { content: formatCurrency(aggDesign), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-        { content: formatCurrency(aggIncome), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231], textColor: [21, 128, 61] } }
+        { content: 'TOTAL KESELURUHAN', styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+        { content: `${totalTerjual} pcs`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+        { content: formatCurrency(lunasRevenue || grandTotalRevenue), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+        { content: formatCurrency(aggProduksi), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+        { content: formatCurrency(aggKardus), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+        { content: formatCurrency(aggFreebies), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+        { content: formatCurrency(aggDesign), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+        { content: formatCurrency(aggIncome), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } }
       ])
     }
 
@@ -516,13 +544,13 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
       ],
       theme: 'grid',
       styles: { fontSize: 8.5, halign: 'center', cellPadding: 2 },
-      headStyles: { fillColor: [6, 95, 70], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      headStyles: { fillColor: [109, 40, 217], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
       bodyStyles: { fontStyle: 'bold' },
       columnStyles: {
-        0: { textColor: [6, 95, 70], cellWidth: 45.5 },
-        1: { textColor: [22, 101, 52], cellWidth: 45.5 },
-        2: { textColor: [5, 150, 105], cellWidth: 45.5 },
-        3: { textColor: [21, 128, 61], cellWidth: 45.5 }
+        0: { textColor: [109, 40, 217], cellWidth: 45.5 },
+        1: { textColor: [124, 58, 237], cellWidth: 45.5 },
+        2: { textColor: [71, 85, 105], cellWidth: 45.5 },
+        3: { textColor: [147, 51, 234], cellWidth: 45.5 }
       },
       margin: { left: 14, right: 14 }
     })
@@ -536,7 +564,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
         doc.addPage()
         currentY = 15
       }
-      doc.setFillColor(157, 38, 255) // Electric Violet #9D26FF
+      doc.setFillColor(124, 58, 237) // Purple #7C3AED
       doc.rect(14, currentY, 182, 7, 'F')
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(9.5)
@@ -557,7 +585,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
     // Sub-header Baju / Apparel
     if (apparelProducts.length > 0) {
       summaryBody.push([
-        { content: 'KATEGORI: BAJU / APPAREL', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [240, 253, 244], textColor: [22, 101, 52], fontSize: 7.5 } }
+        { content: 'KATEGORI: BAJU / APPAREL', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168], fontSize: 7.5 } }
       ])
       apparelProducts.forEach(p => {
         summaryBody.push([
@@ -573,7 +601,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
     // Sub-header Non-Baju / Aksesoris
     if (accessoryProducts.length > 0) {
       summaryBody.push([
-        { content: 'KATEGORI: NON-BAJU / AKSESORIS', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [240, 253, 244], textColor: [22, 101, 52], fontSize: 7.5 } }
+        { content: 'KATEGORI: NON-BAJU / AKSESORIS', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168], fontSize: 7.5 } }
       ])
       accessoryProducts.forEach(p => {
         summaryBody.push([
@@ -586,17 +614,17 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
       })
     }
 
-    // Baris Total Keseluruhan (Hijau tua teks putih)
+    // Baris Total Keseluruhan
     const grandLunas = allProducts.reduce((s, p) => s + p.lunasRevenue, 0)
     const grandPending = allProducts.reduce((s, p) => s + p.pendingRevenue, 0)
     const grandTotal = allProducts.reduce((s, p) => s + p.totalRevenue, 0)
 
     summaryBody.push([
-      { content: 'TOTAL KESELURUHAN', styles: { fontStyle: 'bold', fillColor: [6, 95, 70], textColor: [255, 255, 255] } },
-      { content: `${totalTerjual} pcs`, styles: { fontStyle: 'bold', fillColor: [6, 95, 70], textColor: [255, 255, 255], halign: 'center' } },
-      { content: formatCurrency(grandLunas), styles: { fontStyle: 'bold', fillColor: [6, 95, 70], textColor: [255, 255, 255], halign: 'right' } },
-      { content: formatCurrency(grandPending), styles: { fontStyle: 'bold', fillColor: [6, 95, 70], textColor: [255, 255, 255], halign: 'right' } },
-      { content: formatCurrency(grandTotal), styles: { fontStyle: 'bold', fillColor: [6, 95, 70], textColor: [255, 255, 255], halign: 'right' } }
+      { content: 'TOTAL KESELURUHAN', styles: { fontStyle: 'bold', fillColor: [109, 40, 217], textColor: [255, 255, 255] } },
+      { content: `${totalTerjual} pcs`, styles: { fontStyle: 'bold', fillColor: [109, 40, 217], textColor: [255, 255, 255], halign: 'center' } },
+      { content: formatCurrency(grandLunas), styles: { fontStyle: 'bold', fillColor: [109, 40, 217], textColor: [255, 255, 255], halign: 'right' } },
+      { content: formatCurrency(grandPending), styles: { fontStyle: 'bold', fillColor: [109, 40, 217], textColor: [255, 255, 255], halign: 'right' } },
+      { content: formatCurrency(grandTotal), styles: { fontStyle: 'bold', fillColor: [109, 40, 217], textColor: [255, 255, 255], halign: 'right' } }
     ])
 
     autoTable(doc, {
@@ -604,7 +632,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
       head: [['Produk', 'Terjual', 'Lunas', 'Pending', 'Total']],
       body: summaryBody,
       theme: 'grid',
-      headStyles: { fillColor: [7, 145, 8], textColor: 255, fontStyle: 'bold' },
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
       styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
       columnStyles: {
         0: { cellWidth: 74 },
@@ -635,9 +663,9 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
 
       const totalApparelQty = apparelProducts.reduce((sum, p) => sum + p.qty, 0)
       matrixBody.push([
-        { content: 'TOTAL', styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [22, 101, 52] } },
-        ...activeSizes.map(s => ({ content: `${totalQtyPerSize[s] || 0}`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [220, 252, 231], textColor: [22, 101, 52] } })),
-        { content: `${totalApparelQty} pcs`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [220, 252, 231], textColor: [22, 101, 52] } }
+        { content: 'TOTAL', styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+        ...activeSizes.map(s => ({ content: `${totalQtyPerSize[s] || 0}`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255], textColor: [107, 33, 168] } })),
+        { content: `${totalApparelQty} pcs`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255], textColor: [107, 33, 168] } }
       ])
 
       const prodWidth = 80
@@ -657,7 +685,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
         head: matrixHead,
         body: matrixBody,
         theme: 'grid',
-        headStyles: { fillColor: [6, 95, 70], textColor: 255, fontStyle: 'bold', halign: 'center' },
+        headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', halign: 'center' },
         styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
         columnStyles: colStyles,
         margin: { left: 14, right: 14 },
@@ -675,7 +703,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
         head: [['Produk', 'Qty', 'Omset', 'Produksi', 'Kardus', 'Freebies', 'Desain', 'Net Income']],
         body: hppTableRows,
         theme: 'grid',
-        headStyles: { fillColor: [6, 95, 70], textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 7.5 },
+        headStyles: { fillColor: [109, 40, 217], textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 7.5 },
         styles: { fontSize: 7, cellPadding: 2 },
         columnStyles: {
           0: { cellWidth: 44 },
@@ -685,7 +713,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
           4: { cellWidth: 18, halign: 'right' },
           5: { cellWidth: 18, halign: 'right' },
           6: { cellWidth: 18, halign: 'right' },
-          7: { cellWidth: 28, halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
+          7: { cellWidth: 28, halign: 'right', fontStyle: 'bold', textColor: [109, 40, 217] }
         },
         margin: { left: 14, right: 14 },
         rowPageBreak: 'avoid',
@@ -772,7 +800,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
       head: [['Kode', 'Customer', 'Kontak', 'Items', 'Harga', 'Total', 'Status', 'Tanggal']],
       body: detailRows.length ? detailRows : [['-', '-', '-', '-', '-', '-', '-', '-']],
       theme: 'grid',
-      headStyles: { fillColor: [7, 145, 8], textColor: 255, fontStyle: 'bold' },
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
       styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
       columnStyles: {
         0: { cellWidth: 25 },
@@ -823,7 +851,7 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
   }
 }
 
-export const generatePDF = async ({ api, scope, value, params, events }) => {
+export const generatePDF = async ({ api, scope, value, params, events, financialConfig }) => {
   try {
     Swal.fire({ title: 'Generating PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
     const exportParams = { ...params }
@@ -907,6 +935,24 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
     const distinctEvents = Array.from(eventGroupsMap.values())
     const isMultiEvent = distinctEvents.length > 1 || scope === 'month'
 
+    // Konfigurasi finansial & pembagian gaji (Default atau Custom dari Admin)
+    const finCfg = {
+      includeSalary: financialConfig?.includeSalary !== false,
+      feePoMember: Number(financialConfig?.feePoMember ?? 10000),
+      feePoMode: financialConfig?.feePoMode || 'nominal',
+      feeOtsMember: Number(financialConfig?.feeOtsMember ?? 15000),
+      feeOtsMode: financialConfig?.feeOtsMode || 'nominal',
+      modalFilm: Number(financialConfig?.modalFilm ?? 15000),
+      modalFilmMode: financialConfig?.modalFilmMode || 'nominal',
+      honorStaff: Number(financialConfig?.honorStaff ?? 2000),
+      honorStaffMode: financialConfig?.honorStaffMode || 'nominal',
+      groupPoPool: Number(financialConfig?.groupPoPool ?? 15000),
+      groupPoMode: financialConfig?.groupPoMode || 'nominal',
+      groupOtsPool: Number(financialConfig?.groupOtsPool ?? 20000),
+      groupOtsMode: financialConfig?.groupOtsMode || 'nominal',
+      eventFeePerMember: Number(financialConfig?.eventFeePerMember ?? 0)
+    }
+
     // Kalkulasi finansial per event dan akumulasi bulanan
     let grandTotalRevenue = 0
     let grandTotalChekiSold = 0
@@ -937,14 +983,20 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
           if (name.toLowerCase().includes('all member') || name.toLowerCase().includes('group')) {
             name = 'All Member (Group)'
           }
-          if (!memberStats[name]) memberStats[name] = { qty: 0, otsQty: 0, poQty: 0, revenue: 0 }
+          if (!memberStats[name]) memberStats[name] = { qty: 0, otsQty: 0, poQty: 0, revenue: 0, poRevenue: 0, otsRevenue: 0 }
           const qty = item.quantity || 0
           const price = Number(item.price ?? item.harga ?? 0)
+          const lineTotal = qty * price
 
           memberStats[name].qty += qty
-          if (order.is_ots) memberStats[name].otsQty += qty
-          else memberStats[name].poQty += qty
-          memberStats[name].revenue += (qty * price)
+          if (order.is_ots) {
+            memberStats[name].otsQty += qty
+            memberStats[name].otsRevenue += lineTotal
+          } else {
+            memberStats[name].poQty += qty
+            memberStats[name].poRevenue += lineTotal
+          }
+          memberStats[name].revenue += lineTotal
         })
       })
 
@@ -955,12 +1007,16 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       let singleOtsQty = 0
       let groupPoQty = 0
       let groupOtsQty = 0
+      let groupPoRev = 0
+      let groupOtsRev = 0
 
       Object.entries(memberStats).forEach(([name, stats]) => {
         const isGroup = name.toLowerCase().includes('group') || name.toLowerCase().includes('all member')
         if (isGroup) {
           groupPoQty += (stats.poQty || 0)
           groupOtsQty += (stats.otsQty || 0)
+          groupPoRev += (stats.poRevenue || 0)
+          groupOtsRev += (stats.otsRevenue || 0)
         } else {
           singlePoQty += (stats.poQty || 0)
           singleOtsQty += (stats.otsQty || 0)
@@ -972,9 +1028,24 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       eg.chekiSold = totalCheki
       grandTotalChekiSold += totalCheki
 
-      const modalCheki = totalCheki * 15000
-      const staffHonor = totalCheki * 2000
-      const groupPool = (groupPoQty * 15000) + (groupOtsQty * 20000)
+      // Modal Cheki (Nominal Rp atau % dari Revenue)
+      const modalCheki = finCfg.modalFilmMode === 'percent'
+        ? Math.round(eg.revenue * (finCfg.modalFilm / 100))
+        : Math.round(totalCheki * finCfg.modalFilm)
+
+      // Honor Staff (Nominal Rp atau % dari Revenue)
+      const staffHonor = finCfg.honorStaffMode === 'percent'
+        ? Math.round(eg.revenue * (finCfg.honorStaff / 100))
+        : Math.round(totalCheki * finCfg.honorStaff)
+
+      // Group Pool (All Member Pool)
+      const groupPoPart = finCfg.groupPoMode === 'percent'
+        ? Math.round(groupPoRev * (finCfg.groupPoPool / 100))
+        : Math.round(groupPoQty * finCfg.groupPoPool)
+      const groupOtsPart = finCfg.groupOtsMode === 'percent'
+        ? Math.round(groupOtsRev * (finCfg.groupOtsPool / 100))
+        : Math.round(groupOtsQty * finCfg.groupOtsPool)
+      const groupPool = groupPoPart + groupOtsPart
 
       const individualMembers = Object.keys(memberStats).filter(n => !n.toLowerCase().includes('group') && !n.toLowerCase().includes('all member'))
       const activeMemberCount = individualMembers.length || 1
@@ -985,10 +1056,17 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
 
       individualMembers.forEach(name => {
         const stats = memberStats[name]
-        const poFee = (stats.poQty || 0) * 10000
-        const otsFee = (stats.otsQty || 0) * 15000
+        const poFee = finCfg.feePoMode === 'percent'
+          ? Math.round((stats.poRevenue || 0) * (finCfg.feePoMember / 100))
+          : Math.round((stats.poQty || 0) * finCfg.feePoMember)
+
+        const otsFee = finCfg.feeOtsMode === 'percent'
+          ? Math.round((stats.otsRevenue || 0) * (finCfg.feeOtsMember / 100))
+          : Math.round((stats.otsQty || 0) * finCfg.feeOtsMember)
+
         const groupShare = groupSharePerMember
-        const totalTakeHome = poFee + otsFee + groupShare
+        const evFee = Number(finCfg.eventFeePerMember || 0)
+        const totalTakeHome = poFee + otsFee + groupShare + evFee
 
         memberFeeDetails[name] = {
           poQty: stats.poQty || 0,
@@ -996,12 +1074,14 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
           otsQty: stats.otsQty || 0,
           otsFee,
           groupShare,
+          eventFee: evFee,
           totalTakeHome
         }
         totalMemberFee += totalTakeHome
       })
 
-      const mgmtCut = (singlePoQty * 3000) + (singleOtsQty * 3000) + (groupPoQty * 8000) + (groupOtsQty * 13000)
+      // Laba Bersih Manajemen = Total Omset - Biaya Film - Honor Staff - Total Pembagian Member
+      const mgmtCut = eg.revenue - modalCheki - staffHonor - totalMemberFee
 
       eg.modalCheki = modalCheki
       eg.staffHonor = staffHonor
@@ -1046,17 +1126,22 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       return row
     })
 
-    const logoDataUrl = await loadLogoDataUrl()
+    const logoObj = await loadLogoDataUrl()
+    const logoDataUrl = logoObj?.dataUrl || (typeof logoObj === 'string' ? logoObj : null)
+    const logoRatio = logoObj?.ratio || 1.5
     const doc = new jsPDF('p', 'mm', 'a4')
 
-    // 1. Header Banner Hijau (#9D26FF) + Logo
-    doc.setFillColor(7, 145, 8)
+    // 1. Header Banner Ungu NOIZE (#7928CA) + Logo Proporsional
+    doc.setFillColor(121, 40, 202)
     doc.rect(0, 0, 210, 24, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(13)
     doc.setFont('helvetica', 'bold')
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', 14, 5, 14, 14)
+      const logoH = 15
+      const logoW = Math.min(32, Math.round(logoH * logoRatio * 10) / 10)
+      const logoY = (24 - logoH) / 2
+      doc.addImage(logoDataUrl, 'PNG', 14, logoY, logoW, logoH)
     }
 
     const mainTitle = isMultiEvent
@@ -1065,7 +1150,7 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
     doc.text(mainTitle, 105, 15, { align: 'center' })
 
     // Meta Header
-    doc.setTextColor(22, 101, 52)
+    doc.setTextColor(107, 33, 168)
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     let currentY = 31
@@ -1094,7 +1179,7 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
         body: eventListRows,
         theme: 'grid',
         styles: { fontSize: 7.5, cellPadding: 1.5 },
-        headStyles: { fillColor: [6, 95, 70], textColor: 255, fontStyle: 'bold' },
+        headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
         columnStyles: {
           0: { cellWidth: 10, halign: 'center' },
           1: { cellWidth: 46 },
@@ -1118,8 +1203,8 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       currentY += 4
     }
 
-    // Helper untuk Section Header Hijau
-    const addSectionHeader = (title, bg = [6, 95, 70]) => {
+    // Helper untuk Section Header Ungu
+    const addSectionHeader = (title, bg = [109, 40, 217]) => {
       const pageHeight = doc.internal.pageSize.getHeight()
       if (currentY + 25 > pageHeight) {
         doc.addPage()
@@ -1134,7 +1219,13 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       currentY += 9
     }
 
-    // 2. KARTU RINGKASAN OMSET (WARNA HIJAU)
+    // Dynamic Labels for financial calculation
+    const modalLabel = finCfg.modalFilmMode === 'percent' ? `${finCfg.modalFilm}%` : `${Math.round(finCfg.modalFilm / 1000)}K/LBR`
+    const staffLabel = finCfg.honorStaffMode === 'percent' ? `${finCfg.honorStaff}%` : `${Math.round(finCfg.honorStaff / 1000)}K/LBR`
+    const poFeeLabel = finCfg.feePoMode === 'percent' ? `${finCfg.feePoMember}%` : `${Math.round(finCfg.feePoMember / 1000)}k`
+    const otsFeeLabel = finCfg.feeOtsMode === 'percent' ? `${finCfg.feeOtsMember}%` : `${Math.round(finCfg.feeOtsMember / 1000)}k`
+
+    // 2. KARTU RINGKASAN OMSET (WARNA UNGU & ACCENTS)
     autoTable(doc, {
       startY: currentY,
       head: [[
@@ -1153,204 +1244,225 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       ],
       theme: 'grid',
       styles: { fontSize: 8.5, halign: 'center', cellPadding: 2 },
-      headStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold', fontSize: 7.5 },
+      headStyles: { fillColor: [245, 243, 255], textColor: [107, 33, 168], fontStyle: 'bold', fontSize: 7.5 },
       bodyStyles: { fontStyle: 'bold' },
       columnStyles: {
-        0: { textColor: [21, 128, 61], cellWidth: 45.5 },
-        1: { textColor: [22, 163, 74], cellWidth: 45.5 },
-        2: { textColor: [5, 150, 105], cellWidth: 45.5 },
-        3: { textColor: [16, 185, 129], cellWidth: 45.5 }
+        0: { textColor: [109, 40, 217], cellWidth: 45.5 },
+        1: { textColor: [124, 58, 237], cellWidth: 45.5 },
+        2: { textColor: [217, 119, 6], cellWidth: 45.5 }, // Amber
+        3: { textColor: [8, 145, 178], cellWidth: 45.5 }  // Cyan
       },
       margin: { left: 14, right: 14 }
     })
     currentY = doc.lastAutoTable.finalY + 6
 
-    // 3. KARTU ALOKASI KAS & DIVIDEN (WARNA HIJAU RESMI, BEBAS BIRU/HITAM)
+    // 3. KARTU ALOKASI KAS & DIVIDEN (Hanya jika includeSalary diaktifkan)
+    if (finCfg.includeSalary) {
+      autoTable(doc, {
+        startY: currentY,
+        head: [[`MODAL FILM (${modalLabel})`, `HONOR STAFF (${staffLabel})`, 'TOTAL GAJI MEMBER', 'LABA BERSIH MGMT']],
+        body: [[
+          formatCurrency(grandTotalModalCheki),
+          formatCurrency(grandTotalStaffHonor),
+          formatCurrency(grandTotalMemberFees),
+          formatCurrency(grandTotalManagementCut)
+        ]],
+        theme: 'grid',
+        styles: { fontSize: 8.5, halign: 'center', cellPadding: 2 },
+        headStyles: { fillColor: [109, 40, 217], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+        bodyStyles: { fontStyle: 'bold' },
+        columnStyles: {
+          0: { textColor: [109, 40, 217], cellWidth: 45.5 },
+          1: { textColor: [124, 58, 237], cellWidth: 45.5 },
+          2: { textColor: [147, 51, 234], cellWidth: 45.5 },
+          3: { textColor: [109, 40, 217], cellWidth: 45.5 }
+        },
+        margin: { left: 14, right: 14 }
+      })
+      currentY = doc.lastAutoTable.finalY + 8
+
+      // 4. MATRIKS GAJI BULANAN PER MEMBER (Jika Multi-Event)
+      if (isMultiEvent) {
+        addSectionHeader(`MATRIKS REKAP GAJI BULANAN PER MEMBER (${distinctEvents.length} EVENT)`)
+
+        const matrixHead = [
+          'Member / Talent',
+          ...distinctEvents.map(eg => eg.nama.length > 15 ? eg.nama.substring(0, 15) + '..' : eg.nama),
+          'Total Gaji Bulanan'
+        ]
+
+        const matrixBody = allMembersList.map(mName => {
+          let memberMonthTotal = 0
+          const evFees = distinctEvents.map(eg => {
+            const fee = eg.memberFeeDetails[mName]?.totalTakeHome || 0
+            memberMonthTotal += fee
+            return formatCurrency(fee)
+          })
+          return [
+            mName,
+            ...evFees,
+            formatCurrency(memberMonthTotal)
+          ]
+        })
+
+        matrixBody.push([
+          { content: 'TOTAL DIBAGIKAN KE MEMBER', styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+          ...distinctEvents.map(eg => ({
+            content: formatCurrency(eg.totalMemberFee),
+            styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [107, 33, 168] }
+          })),
+          {
+            content: formatCurrency(grandTotalMemberFees),
+            styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] }
+          }
+        ])
+
+        const memberColWidth = 46
+        const totalColWidth = 36
+        const remWidth = 182 - memberColWidth - totalColWidth
+        const evColWidth = Math.max(20, Math.floor(remWidth / distinctEvents.length))
+
+        const colStyles = {
+          0: { cellWidth: memberColWidth },
+          [distinctEvents.length + 1]: { cellWidth: totalColWidth, halign: 'right', fontStyle: 'bold', textColor: [109, 40, 217] }
+        }
+        distinctEvents.forEach((_, idx) => {
+          colStyles[idx + 1] = { cellWidth: evColWidth, halign: 'right' }
+        })
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [matrixHead],
+          body: matrixBody,
+          theme: 'grid',
+          headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', halign: 'center' },
+          styles: { fontSize: 7, cellPadding: 2 },
+          columnStyles: colStyles,
+          margin: { left: 14, right: 14 },
+          rowPageBreak: 'avoid',
+          showHead: 'everyPage'
+        })
+        currentY = doc.lastAutoTable.finalY + 8
+      }
+
+      // 5. RINCIAN PER EVENT
+      distinctEvents.forEach((eg, egIdx) => {
+        const sectionTitle = isMultiEvent
+          ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}`
+          : `RINCIAN GAJI & FEE MEMBER (PO ${poFeeLabel}, OTS ${otsFeeLabel}, Grup dibagi rata ${eg.activeMemberCount} member${finCfg.eventFeePerMember > 0 ? `, Event Fee: Rp ${finCfg.eventFeePerMember.toLocaleString('id-ID')}` : ''})`
+
+        addSectionHeader(sectionTitle)
+
+        if (isMultiEvent) {
+          autoTable(doc, {
+            startY: currentY,
+            head: [['OMSET EVENT', 'MODAL FILM', 'HONOR STAFF', 'FEE MEMBER', 'PROFIT MGMT']],
+            body: [[
+              formatCurrency(eg.revenue),
+              formatCurrency(eg.modalCheki),
+              formatCurrency(eg.staffHonor),
+              formatCurrency(eg.totalMemberFee),
+              formatCurrency(eg.mgmtCut)
+            ]],
+            theme: 'grid',
+            styles: { fontSize: 7.5, halign: 'center', cellPadding: 1.5 },
+            headStyles: { fillColor: [245, 243, 255], textColor: [107, 33, 168], fontStyle: 'bold' },
+            bodyStyles: { fontStyle: 'bold', textColor: [109, 40, 217] },
+            margin: { left: 14, right: 14 }
+          })
+          currentY = doc.lastAutoTable.finalY + 4
+        }
+
+        const hasEventFee = finCfg.eventFeePerMember > 0
+        const evMemRows = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b)).map(name => {
+          const d = eg.memberFeeDetails[name]
+          const rowData = [
+            name,
+            d.poQty,
+            formatCurrency(d.poFee),
+            d.otsQty,
+            formatCurrency(d.otsFee),
+            formatCurrency(d.groupShare)
+          ]
+          if (hasEventFee) rowData.push(formatCurrency(d.eventFee))
+          rowData.push(formatCurrency(d.totalTakeHome))
+          return rowData
+        })
+
+        if (evMemRows.length > 0) {
+          const subtotalRow = [
+            { content: `SUBTOTAL EVENT (${eg.nama})`, styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+            { content: String(eg.singlePoQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
+            { content: formatCurrency(eg.memberFeeDetails ? Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.poFee || 0), 0) : 0), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+            { content: String(eg.singleOtsQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
+            { content: formatCurrency(eg.memberFeeDetails ? Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.otsFee || 0), 0) : 0), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+            { content: formatCurrency(eg.groupPool), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } }
+          ]
+          if (hasEventFee) {
+            subtotalRow.push({ content: formatCurrency(eg.activeMemberCount * finCfg.eventFeePerMember), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } })
+          }
+          subtotalRow.push({ content: formatCurrency(eg.totalMemberFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } })
+          evMemRows.push(subtotalRow)
+        }
+
+        const tableHead = ['Member / Talent', 'PO Qty', `Fee PO (${poFeeLabel})`, 'OTS Qty', `Fee OTS (${otsFeeLabel})`, 'Share Grup']
+        if (hasEventFee) tableHead.push('Event Fee')
+        tableHead.push('Total Fee Event')
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [tableHead],
+          body: evMemRows.length ? evMemRows : [['-', '-', '-', '-', '-', '-', ...(hasEventFee ? ['-'] : []), '-']],
+          theme: 'grid',
+          headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
+          styles: { fontSize: 7, cellPadding: 2 },
+          columnStyles: {
+            1: { halign: 'center', cellWidth: 15 },
+            2: { halign: 'right', cellWidth: 20 },
+            3: { halign: 'center', cellWidth: 15 },
+            4: { halign: 'right', cellWidth: 20 },
+            5: { halign: 'right', cellWidth: 20 },
+            [hasEventFee ? 7 : 6]: { halign: 'right', fontStyle: 'bold', textColor: [109, 40, 217] }
+          },
+          margin: { left: 14, right: 14 }
+        })
+        currentY = doc.lastAutoTable.finalY + 8
+      })
+    }
+
+    // Tabel Performa Member (A-Z)
+    addSectionHeader('PERFORMA PENJUALAN MEMBER (A-Z)')
+    const memberBodyRows = []
+    distinctEvents.forEach(eg => {
+      Object.entries(eg.memberStats || {})
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .forEach(([name, stats]) => {
+          memberBodyRows.push([
+            isMultiEvent ? `${stripEmoji(name)} (${eg.nama})` : stripEmoji(name),
+            stats.qty,
+            stats.otsQty,
+            stats.poQty,
+            formatCurrency(stats.revenue)
+          ])
+        })
+    })
+
     autoTable(doc, {
       startY: currentY,
-      head: [['MODAL FILM (15K/LBR)', 'HONOR STAFF (2K/LBR)', 'TOTAL GAJI MEMBER', 'LABA BERSIH MGMT']],
-      body: [[
-        formatCurrency(grandTotalModalCheki),
-        formatCurrency(grandTotalStaffHonor),
-        formatCurrency(grandTotalMemberFees),
-        formatCurrency(grandTotalManagementCut)
-      ]],
+      head: [['Member / Lineup', 'Total Qty', 'OTS Qty', 'PO Qty', 'Total Omset']],
+      body: memberBodyRows.length ? memberBodyRows : [['-', '-', '-', '-', '-']],
       theme: 'grid',
-      styles: { fontSize: 8.5, halign: 'center', cellPadding: 2 },
-      headStyles: { fillColor: [6, 95, 70], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
-      bodyStyles: { fontStyle: 'bold' },
+      headStyles: { fillColor: [124, 58, 237], textColor: 255 },
+      styles: { fontSize: 7.5 },
       columnStyles: {
-        0: { textColor: [6, 78, 59], cellWidth: 45.5 },
-        1: { textColor: [21, 128, 61], cellWidth: 45.5 },
-        2: { textColor: [7, 145, 8], cellWidth: 45.5 },
-        3: { textColor: [22, 101, 52], cellWidth: 45.5 }
+        1: { halign: 'center', cellWidth: 20 },
+        2: { halign: 'center', cellWidth: 20 },
+        3: { halign: 'center', cellWidth: 20 },
+        4: { halign: 'right' }
       },
       margin: { left: 14, right: 14 }
     })
     currentY = doc.lastAutoTable.finalY + 8
-
-    // 4. MATRIKS GAJI BULANAN PER MEMBER (Jika Multi-Event)
-    if (isMultiEvent) {
-      addSectionHeader(`MATRIKS REKAP GAJI BULANAN PER MEMBER (${distinctEvents.length} EVENT)`)
-
-      const matrixHead = [
-        'Member / Talent',
-        ...distinctEvents.map(eg => eg.nama.length > 15 ? eg.nama.substring(0, 15) + '..' : eg.nama),
-        'Total Gaji Bulanan'
-      ]
-
-      const matrixBody = allMembersList.map(mName => {
-        let memberMonthTotal = 0
-        const evFees = distinctEvents.map(eg => {
-          const fee = eg.memberFeeDetails[mName]?.totalTakeHome || 0
-          memberMonthTotal += fee
-          return formatCurrency(fee)
-        })
-        return [
-          mName,
-          ...evFees,
-          formatCurrency(memberMonthTotal)
-        ]
-      })
-
-      matrixBody.push([
-        { content: 'TOTAL DIBAGIKAN KE MEMBER', styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [22, 101, 52] } },
-        ...distinctEvents.map(eg => ({
-          content: formatCurrency(eg.totalMemberFee),
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231], textColor: [22, 101, 52] }
-        })),
-        {
-          content: formatCurrency(grandTotalMemberFees),
-          styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231], textColor: [7, 145, 8] }
-        }
-      ])
-
-      const memberColWidth = 46
-      const totalColWidth = 36
-      const remWidth = 182 - memberColWidth - totalColWidth
-      const evColWidth = Math.max(20, Math.floor(remWidth / distinctEvents.length))
-
-      const colStyles = {
-        0: { cellWidth: memberColWidth },
-        [distinctEvents.length + 1]: { cellWidth: totalColWidth, halign: 'right', fontStyle: 'bold', textColor: [7, 145, 8] }
-      }
-      distinctEvents.forEach((_, idx) => {
-        colStyles[idx + 1] = { cellWidth: evColWidth, halign: 'right' }
-      })
-
-      autoTable(doc, {
-        startY: currentY,
-        head: [matrixHead],
-        body: matrixBody,
-        theme: 'grid',
-        headStyles: { fillColor: [7, 145, 8], textColor: 255, fontStyle: 'bold', halign: 'center' },
-        styles: { fontSize: 7, cellPadding: 2 },
-        columnStyles: colStyles,
-        margin: { left: 14, right: 14 },
-        rowPageBreak: 'avoid',
-        showHead: 'everyPage'
-      })
-      currentY = doc.lastAutoTable.finalY + 8
-    }
-
-    // 5. RINCIAN PER EVENT
-    distinctEvents.forEach((eg, egIdx) => {
-      const sectionTitle = isMultiEvent
-        ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}`
-        : `RINCIAN GAJI & FEE MEMBER (PO 10k, OTS 15k, Grup dibagi rata ${eg.activeMemberCount} member)`
-
-      addSectionHeader(sectionTitle)
-
-      if (isMultiEvent) {
-        autoTable(doc, {
-          startY: currentY,
-          head: [['OMSET EVENT', 'MODAL FILM', 'HONOR STAFF', 'FEE MEMBER', 'PROFIT MGMT']],
-          body: [[
-            formatCurrency(eg.revenue),
-            formatCurrency(eg.modalCheki),
-            formatCurrency(eg.staffHonor),
-            formatCurrency(eg.totalMemberFee),
-            formatCurrency(eg.mgmtCut)
-          ]],
-          theme: 'grid',
-          styles: { fontSize: 7.5, halign: 'center', cellPadding: 1.5 },
-          headStyles: { fillColor: [240, 253, 244], textColor: [22, 101, 52], fontStyle: 'bold' },
-          bodyStyles: { fontStyle: 'bold', textColor: [6, 95, 70] },
-          margin: { left: 14, right: 14 }
-        })
-        currentY = doc.lastAutoTable.finalY + 4
-      }
-
-      const evMemRows = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b)).map(name => {
-        const d = eg.memberFeeDetails[name]
-        return [
-          name,
-          d.poQty,
-          formatCurrency(d.poFee),
-          d.otsQty,
-          formatCurrency(d.otsFee),
-          formatCurrency(d.groupShare),
-          formatCurrency(d.totalTakeHome)
-        ]
-      })
-
-      if (evMemRows.length > 0) {
-        evMemRows.push([
-          { content: `SUBTOTAL EVENT (${eg.nama})`, styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [22, 101, 52] } },
-          { content: String(eg.singlePoQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [220, 252, 231] } },
-          { content: formatCurrency(eg.singlePoQty * 10000), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-          { content: String(eg.singleOtsQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [220, 252, 231] } },
-          { content: formatCurrency(eg.singleOtsQty * 15000), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-          { content: formatCurrency(eg.groupPool), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231] } },
-          { content: formatCurrency(eg.totalMemberFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [220, 252, 231], textColor: [7, 145, 8] } }
-        ])
-      }
-
-      autoTable(doc, {
-        startY: currentY,
-        head: [['Member / Talent', 'PO Qty', 'Fee PO', 'OTS Qty', 'Fee OTS', 'Share Grup', 'Total Fee Event']],
-        body: evMemRows.length ? evMemRows : [['-', '-', '-', '-', '-', '-', '-']],
-        theme: 'grid',
-        headStyles: { fillColor: [6, 95, 70], textColor: 255, fontStyle: 'bold' },
-        styles: { fontSize: 7, cellPadding: 2 },
-        columnStyles: {
-          1: { halign: 'center', cellWidth: 15 },
-          2: { halign: 'right', cellWidth: 22 },
-          3: { halign: 'center', cellWidth: 15 },
-          4: { halign: 'right', cellWidth: 22 },
-          5: { halign: 'right', cellWidth: 22 },
-          6: { halign: 'right', fontStyle: 'bold', textColor: [7, 145, 8] }
-        },
-        margin: { left: 14, right: 14 }
-      })
-      currentY = doc.lastAutoTable.finalY + 8
-    })
-
-    // Single-event: tampilkan tabel Performa Member jika bukan multi-event
-    if (!isMultiEvent) {
-      addSectionHeader('MEMBER PERFORMANCE (A-Z)')
-      const singleEv = distinctEvents[0]
-      const memberBody = Object.entries(singleEv?.memberStats || {})
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([name, stats]) => [stripEmoji(name), stats.qty, stats.otsQty, stats.poQty, formatCurrency(stats.revenue)])
-
-      autoTable(doc, {
-        startY: currentY,
-        head: [['Member / Lineup', 'Total Qty', 'OTS Qty', 'PO Qty', 'Revenue']],
-        body: memberBody.length ? memberBody : [['-', '-', '-', '-', '-']],
-        theme: 'grid',
-        headStyles: { fillColor: [7, 145, 8], textColor: 255 },
-        styles: { fontSize: 7.5 },
-        columnStyles: {
-          1: { halign: 'center', cellWidth: 20 },
-          2: { halign: 'center', cellWidth: 20 },
-          3: { halign: 'center', cellWidth: 20 },
-          4: { halign: 'right' }
-        },
-        margin: { left: 14, right: 14 }
-      })
-      currentY = doc.lastAutoTable.finalY + 8
-    }
 
     // 6. DETAIL TRANSAKSI LENGKAP
     addSectionHeader('DETAIL TRANSAKSI LENGKAP')
@@ -1362,8 +1474,8 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
     if (isMultiEvent) tableHeaders.push('Event')
     tableHeaders.push('Tipe', 'Items', 'Qty', 'Total', 'Status', 'Tanggal')
 
-    // OTS Section
-    doc.setFillColor(5, 150, 105)
+    // OTS Section (Warna Amber #D97706 khas OTS)
+    doc.setFillColor(217, 119, 6)
     doc.rect(14, currentY, 182, 6, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(9)
@@ -1376,7 +1488,7 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       body: buildOrderRows(allOtsOrders).length ? buildOrderRows(allOtsOrders) : [['-', '-', '-', ...(isMultiEvent ? ['-'] : []), '-', '-', '-', '-', '-', '-']],
       theme: 'grid',
       styles: { fontSize: 6.8, cellPadding: 1, overflow: 'linebreak' },
-      headStyles: { fillColor: [5, 150, 105], textColor: 255 },
+      headStyles: { fillColor: [217, 119, 6], textColor: 255 },
       columnStyles: {
         [isMultiEvent ? 5 : 4]: { cellWidth: 38 },
         [isMultiEvent ? 7 : 6]: { halign: 'right' }
@@ -1385,14 +1497,14 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
     })
     currentY = doc.lastAutoTable.finalY + 6
 
-    // PO Section
+    // PO Section (Warna Cyan #0891B2 khas PO)
     const pageHeight = doc.internal.pageSize.getHeight()
     if (currentY + 25 > pageHeight) {
       doc.addPage()
       currentY = 15
     }
 
-    doc.setFillColor(22, 163, 74)
+    doc.setFillColor(8, 145, 178)
     doc.rect(14, currentY, 182, 6, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(9)
@@ -1405,7 +1517,7 @@ export const generatePDF = async ({ api, scope, value, params, events }) => {
       body: buildOrderRows(allPoOrders).length ? buildOrderRows(allPoOrders) : [['-', '-', '-', ...(isMultiEvent ? ['-'] : []), '-', '-', '-', '-', '-', '-']],
       theme: 'grid',
       styles: { fontSize: 6.8, cellPadding: 1, overflow: 'linebreak' },
-      headStyles: { fillColor: [22, 163, 74], textColor: 255 },
+      headStyles: { fillColor: [8, 145, 178], textColor: 255 },
       columnStyles: {
         [isMultiEvent ? 5 : 4]: { cellWidth: 38 },
         [isMultiEvent ? 7 : 6]: { halign: 'right' }
