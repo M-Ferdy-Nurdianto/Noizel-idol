@@ -162,7 +162,7 @@ const AdminPage = () => {
       subscription = supabase
         .channel('public:orders')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-          fetchOrders()
+          fetchOrders(true)
           if (payload.eventType === 'INSERT' && payload.new.created_by === 'customer') {
             showToast.info(payload.new.nama_lengkap, 'Order Baru!')
           }
@@ -187,7 +187,7 @@ const AdminPage = () => {
   useEffect(() => {
     localStorage.setItem('admin_active_tab', activeTab)
     if (activeTab === 'orders') {
-      fetchOrders()
+      fetchOrders(orders.length > 0)
     }
   }, [statusFilter, otsFilter, eventFilter, dateFilter, dateFrom, dateTo, searchQuery, activeTab, orderSubTab])
 
@@ -268,9 +268,11 @@ const AdminPage = () => {
     return params
   }
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (isBackground = false) => {
     try {
-      setLoading(true)
+      if (!isBackground) {
+        setLoading(true)
+      }
       const params = buildOrderParams()
       const response = await api.get('/orders', { params })
       setOrders(response.data.data || [])
@@ -280,7 +282,9 @@ const AdminPage = () => {
         navigate('/admin/login')
       }
     } finally {
-      setLoading(false)
+      if (!isBackground) {
+        setLoading(false)
+      }
     }
   }
 
@@ -429,9 +433,11 @@ const AdminPage = () => {
     }
   }
 
-  const fetchMerchOrders = async (batchId) => {
+  const fetchMerchOrders = async (batchId, isBackground = false) => {
     try {
-      setLoadingMerchOrders(true)
+      if (!isBackground) {
+        setLoadingMerchOrders(true)
+      }
       const bId = batchId !== undefined ? batchId : merchBatchFilter
       const params = {}
       if (merchOrderStatusFilter !== 'all') params.status = merchOrderStatusFilter
@@ -442,7 +448,9 @@ const AdminPage = () => {
     } catch (error) {
       console.error(error)
     } finally {
-      setLoadingMerchOrders(false)
+      if (!isBackground) {
+        setLoadingMerchOrders(false)
+      }
     }
   }
 
@@ -462,11 +470,15 @@ const AdminPage = () => {
   }
 
   const handleStatusChange = async (orderId, status) => {
+    // Optimistic UI update: update state immediately so dropdown & badge change instantly
+    const prevOrders = orders
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o))
     try {
       await api.patch(`/orders/${orderId}/status`, { status })
       showToast.success('Status updated!')
-      fetchOrders()
+      fetchOrders(true)
     } catch (error) {
+      setOrders(prevOrders)
       Swal.fire({ icon: 'error', title: 'Gagal Update Status', text: error.response?.data?.error || error.message })
     }
   }
@@ -485,11 +497,15 @@ const AdminPage = () => {
 
     if (!result.isConfirmed) return
 
+    // Optimistic UI update
+    const prevOrders = orders
+    setOrders(prev => prev.filter(o => o.id !== orderId))
     try {
       await api.delete(`/orders/${orderId}`)
       Swal.fire('Deleted!', 'Order telah dihapus.', 'success')
-      fetchOrders()
+      fetchOrders(true)
     } catch (error) {
+      setOrders(prevOrders)
       Swal.fire('Error!', error.message, 'error')
     }
   }
@@ -498,7 +514,7 @@ const AdminPage = () => {
     try {
       const response = await api.post('/orders/bulk-delete', { deleteType, ...params })
       showToast.success(response.data.message)
-      fetchOrders()
+      fetchOrders(true)
       setShowBulkDeleteModal(false)
     } catch (error) {
       Swal.fire('Error!', error.response?.data?.error || error.message, 'error')
@@ -527,7 +543,7 @@ const AdminPage = () => {
         text: response.data.message,
         confirmButtonColor: '#9D26FF'
       })
-      fetchOrders()
+      fetchOrders(true)
     } catch (error) {
       Swal.fire('Error!', error.response?.data?.error || error.message, 'error')
     }
@@ -965,10 +981,15 @@ const AdminPage = () => {
   }
 
   const handleMerchOrderStatusChange = async (orderId, newStatus) => {
+    // Optimistic UI update
+    const prevMerchOrders = merchOrders
+    setMerchOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
     try {
       await api.patch(`/merch-orders/${orderId}/status`, { status: newStatus })
-      fetchMerchOrders()
+      showToast.success('Status merch updated!')
+      fetchMerchOrders(undefined, true)
     } catch (error) {
+      setMerchOrders(prevMerchOrders)
       Swal.fire({ icon: 'error', title: 'Gagal!', text: 'Gagal update status' })
     }
   }
@@ -985,11 +1006,16 @@ const AdminPage = () => {
       cancelButtonText: 'Batal'
     })
     if (!result.isConfirmed) return
+
+    // Optimistic UI update
+    const prevMerchOrders = merchOrders
+    setMerchOrders(prev => prev.filter(o => o.id !== id))
     try {
       await api.delete(`/merch-orders/${id}`)
       Swal.fire({ icon: 'success', title: 'Berhasil!', timer: 1500, showConfirmButton: false })
-      fetchMerchOrders()
+      fetchMerchOrders(undefined, true)
     } catch (error) {
+      setMerchOrders(prevMerchOrders)
       Swal.fire({ icon: 'error', title: 'Gagal!', text: 'Gagal menghapus' })
     }
   }
@@ -1288,7 +1314,7 @@ const AdminPage = () => {
           onSuccess={() => {
             setShowOTSModal(false)
             setOtsSpecialOnly(false)
-            fetchOrders()
+            fetchOrders(true)
           }}
           hargaOtsPerMember={hargaOtsPerMember}
           hargaOtsGrup={hargaOtsGrup}

@@ -1,6 +1,67 @@
 import React from 'react'
 import { FaEye, FaTrash, FaImage, FaFileAlt, FaSpinner } from 'react-icons/fa'
 import CustomSelect from './CustomSelect'
+import Skeleton from '../../../components/Skeleton'
+
+// ─── Table Skeleton Placeholder Rows ─────────────────────────────────────────
+const TableSkeletonRow = () => (
+  <tr className="border-b border-white/5 animate-pulse">
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-4 w-20 rounded" />
+      <Skeleton className="h-2.5 w-12 rounded mt-1.5" />
+    </td>
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-4 w-28 rounded" />
+      <Skeleton className="h-2.5 w-16 rounded mt-1.5" />
+    </td>
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-4 w-24 rounded" />
+    </td>
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-3.5 w-32 rounded mb-1" />
+      <Skeleton className="h-3 w-20 rounded" />
+    </td>
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-6 w-20 rounded-lg" />
+    </td>
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-4 w-20 rounded" />
+    </td>
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-7 w-28 rounded-lg" />
+    </td>
+    <td className="px-4 py-3.5">
+      <Skeleton className="h-3.5 w-16 rounded" />
+    </td>
+    <td className="px-4 py-3.5">
+      <div className="flex items-center justify-center gap-1.5">
+        <Skeleton className="w-8 h-8 rounded-lg" />
+        <Skeleton className="w-8 h-8 rounded-lg" />
+      </div>
+    </td>
+  </tr>
+)
+
+const CardSkeleton = () => (
+  <div className="bg-[#13121D]/90 border border-white/10 rounded-2xl p-4 shadow-lg space-y-3 animate-pulse">
+    <div className="flex items-start justify-between gap-2">
+      <div className="space-y-1.5">
+        <Skeleton className="h-3.5 w-20 rounded" />
+        <Skeleton className="h-4 w-32 rounded" />
+        <Skeleton className="h-3 w-24 rounded" />
+      </div>
+      <Skeleton className="h-6 w-16 rounded-lg" />
+    </div>
+    <Skeleton className="h-12 w-full rounded-xl" />
+    <div className="flex items-center justify-between pt-1">
+      <Skeleton className="h-4 w-20 rounded" />
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-8 w-24 rounded-lg" />
+        <Skeleton className="w-8 h-8 rounded-lg" />
+      </div>
+    </div>
+  </div>
+)
 
 // ─── Status badge helper ───────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
@@ -226,7 +287,12 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
 // ─── Main RenderTable ──────────────────────────────────────────────────────────
 const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView, onDelete, onStatusChange, events = [] }) => {
   return (
-    <div className="bg-[#13121D]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden mb-6">
+    <div className="bg-[#13121D]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden mb-6 relative">
+      {/* Sleek top loading progress bar for background refreshes */}
+      {loading && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#9D26FF] to-transparent animate-pulse z-20" />
+      )}
+
       {/* Header */}
       <div className="p-4 md:p-5 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 bg-[#161f33]/80">
         <div className="flex items-center gap-2 min-w-0">
@@ -234,7 +300,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
             {title}
           </h3>
           <span className="text-[11px] md:text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10 shrink-0">
-            {data.length} items
+            {loading && data.length === 0 ? '...' : `${data.length} items`}
           </span>
         </div>
         {action && (
@@ -246,17 +312,18 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
 
       {/* ── MOBILE: Card List (< md) ── */}
       <div className="md:hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-14 gap-3">
-            <FaSpinner className="animate-spin text-3xl text-[#9D26FF]" />
-            <p className="text-xs text-zinc-400">Memuat data order...</p>
+        {loading && data.length === 0 ? (
+          <div className="p-3 space-y-3">
+            {[1, 2, 3].map((k) => (
+              <CardSkeleton key={k} />
+            ))}
           </div>
         ) : data.length === 0 ? (
           <div className="py-14 text-center text-zinc-400 text-sm px-4">
             {emptyMessage}
           </div>
         ) : (
-          <div className="p-3 space-y-3">
+          <div className={`p-3 space-y-3 transition-opacity duration-200 ${loading ? 'opacity-70' : 'opacity-100'}`}>
             {data.map((order) => (
               <OrderCard
                 key={order.id}
@@ -287,14 +354,11 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
               <th className="px-4 py-3.5 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5 text-sm text-zinc-200">
-            {loading ? (
-              <tr>
-                <td colSpan="9" className="text-center py-12">
-                  <FaSpinner className="animate-spin text-3xl text-[#9D26FF] mx-auto mb-2" />
-                  <p className="text-xs text-zinc-400">Memuat data order...</p>
-                </td>
-              </tr>
+          <tbody className={`divide-y divide-white/5 text-sm text-zinc-200 transition-opacity duration-200 ${loading ? 'opacity-70' : 'opacity-100'}`}>
+            {loading && data.length === 0 ? (
+              [1, 2, 3, 4].map((k) => (
+                <TableSkeletonRow key={k} />
+              ))
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan="9" className="text-center py-12 text-zinc-400 text-sm">

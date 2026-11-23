@@ -8,6 +8,7 @@ import ExportModal from '../../../components/ExportModal'
 import MerchExportModal from '../../../components/MerchExportModal'
 import OTSOrderInlineForm from '../components/OTSOrderInlineForm'
 import OTSSpecialInlineForm from '../components/OTSSpecialInlineForm'
+import Skeleton from '../../../components/Skeleton'
 
 const OrdersTab = ({
   orders,
@@ -187,7 +188,7 @@ const OrdersTab = ({
           }}
           onSuccess={() => {
             if (onOtsCartActiveChange) onOtsCartActiveChange(false)
-            if (onRefreshOrders) onRefreshOrders()
+            if (onRefreshOrders) onRefreshOrders(true)
           }}
           onCartChange={(count) => {
             if (onOtsCartActiveChange) onOtsCartActiveChange(count > 0)
@@ -341,7 +342,7 @@ const OrdersTab = ({
               }}
               onSuccess={() => {
                 if (onOtsCartActiveChange) onOtsCartActiveChange(false)
-                if (onRefreshOrders) onRefreshOrders()
+                if (onRefreshOrders) onRefreshOrders(true)
               }}
               onCartChange={(count) => {
                 if (onOtsCartActiveChange) onOtsCartActiveChange(count > 0)
@@ -527,16 +528,28 @@ const OrdersTab = ({
           </div>
           {/* ── MOBILE: Merch Order Cards (< md) ── */}
           <div className="md:hidden space-y-3">
-            {loadingMerchOrders ? (
-              <div className="bg-[#13121D]/90 p-8 rounded-2xl border border-white/10 text-center text-zinc-400 text-xs">
-                Memuat order merchandise...
-              </div>
+            {loadingMerchOrders && merchOrders.length === 0 ? (
+              [1, 2, 3].map((k) => (
+                <div key={k} className="bg-[#13121D]/90 p-4 rounded-2xl border border-white/10 space-y-3 animate-pulse">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-24 rounded" />
+                    <Skeleton className="h-4 w-16 rounded" />
+                  </div>
+                  <Skeleton className="h-5 w-40 rounded" />
+                  <Skeleton className="h-12 w-full rounded-xl" />
+                  <div className="flex justify-between items-center pt-1">
+                    <Skeleton className="h-4 w-20 rounded" />
+                    <Skeleton className="h-8 w-24 rounded-lg" />
+                  </div>
+                </div>
+              ))
             ) : merchOrders.length === 0 ? (
               <div className="bg-[#13121D]/90 p-8 rounded-2xl border border-white/10 text-center text-zinc-400 text-xs">
                 Belum ada order merch
               </div>
             ) : (
-              merchOrders.map((order) => (
+              <div className={`space-y-3 transition-opacity duration-200 ${loadingMerchOrders ? 'opacity-70' : 'opacity-100'}`}>
+                {merchOrders.map((order) => (
                 <div key={order.id} className="bg-[#13121D]/90 border border-white/10 rounded-2xl p-4 shadow-lg space-y-3">
                   {/* Top: Order #, Date, Batch, Bukti Bayar */}
                   <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-white/5">
@@ -679,12 +692,16 @@ const OrdersTab = ({
                     </div>
                   </div>
                 </div>
-              ))
+              ))}
+              </div>
             )}
           </div>
 
           {/* ── DESKTOP: Merch Order Table (≥ md) ── */}
-          <div className="hidden md:block bg-[#13121D]/90 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          <div className="hidden md:block bg-[#13121D]/90 rounded-2xl border border-white/10 shadow-2xl overflow-hidden relative">
+            {loadingMerchOrders && (
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#9D26FF] to-transparent animate-pulse z-20" />
+            )}
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left">
                 <thead className="bg-[#1E1C2E] text-zinc-300 uppercase text-[11px] font-bold tracking-wider border-b border-white/10">
@@ -698,9 +715,25 @@ const OrdersTab = ({
                     <th className="px-4 py-3.5 text-center">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5 text-sm text-zinc-200">
-                  {loadingMerchOrders ? (
-                    <tr><td colSpan="7" className="text-center py-10 text-zinc-400">Loading...</td></tr>
+                <tbody className={`divide-y divide-white/5 text-sm text-zinc-200 transition-opacity duration-200 ${loadingMerchOrders ? 'opacity-70' : 'opacity-100'}`}>
+                  {loadingMerchOrders && merchOrders.length === 0 ? (
+                    [1, 2, 3, 4].map((k) => (
+                      <tr key={k} className="border-b border-white/5 animate-pulse">
+                        <td className="px-4 py-3.5">
+                          <Skeleton className="h-4 w-24 rounded mb-1" />
+                          <Skeleton className="h-3 w-16 rounded" />
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <Skeleton className="h-4 w-28 rounded mb-1" />
+                          <Skeleton className="h-3 w-20 rounded" />
+                        </td>
+                        <td className="px-4 py-3.5"><Skeleton className="h-4 w-32 rounded" /></td>
+                        <td className="px-4 py-3.5"><Skeleton className="h-4 w-20 rounded" /></td>
+                        <td className="px-4 py-3.5"><Skeleton className="h-4 w-36 rounded" /></td>
+                        <td className="px-4 py-3.5 text-center"><Skeleton className="h-7 w-24 rounded-lg mx-auto" /></td>
+                        <td className="px-4 py-3.5 text-center"><Skeleton className="h-7 w-8 rounded-lg mx-auto" /></td>
+                      </tr>
+                    ))
                   ) : merchOrders.length === 0 ? (
                     <tr><td colSpan="7" className="text-center py-10 text-zinc-400">Belum ada order merch</td></tr>
                   ) : (
