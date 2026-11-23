@@ -22,76 +22,9 @@
       }
     },
     {
-      "source": "/assets/(.*)",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/images/(.*)",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/data/(.*)",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/favicon.ico",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/noize-logo.png",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/noize-logo-white.png",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/robots.txt",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/sitemap.xml",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/manifest.webmanifest",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/sw.js",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/workbox-(.*)",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
       "source": "/(.*)",
       "destination": {
-        "service": "frontend",
-        "path": "/index.html"
+        "service": "frontend"
       }
     }
   ]
