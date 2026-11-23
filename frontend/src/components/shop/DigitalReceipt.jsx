@@ -45,7 +45,14 @@ const DigitalReceipt = ({ data, payment, onBack, onDownload, isPreview = false }
 
   // Special theme color logic
   const accentColor = data.isSpecial ? (data.themeColor || '#FF6B9D') : '#9D26FF'
-  const isMerch = data.orderNumber?.startsWith('MERCH')
+  const orderNumber = data.orderNumber || data.order_number || data.orderId || ''
+  const isMerch = Boolean(
+    data.isMerch ||
+    data.is_merch ||
+    orderNumber.startsWith('MERCH') ||
+    orderNumber.startsWith('NZM')
+  )
+  const customerName = data.nama || data.nama_lengkap || data.customerName || data.name || '-'
 
   // Styles for the typewriter/receipt look
   const receiptFontStyle = {
@@ -83,8 +90,8 @@ const DigitalReceipt = ({ data, payment, onBack, onDownload, isPreview = false }
       if (buttons) buttons.style.display = 'flex';
 
       const link = document.createElement('a');
-      const safeName = (data.nama || 'User').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      link.download = `${safeName}_${data.orderNumber}.png`;
+      const safeName = customerName.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      link.download = `${safeName || 'User'}_${orderNumber || 'receipt'}.png`;
       link.href = dataUrl;
       link.click();
       
@@ -162,7 +169,7 @@ const DigitalReceipt = ({ data, payment, onBack, onDownload, isPreview = false }
             className="w-full py-3 rounded-lg text-center shadow-sm"
             style={{ backgroundColor: accentColor }}
           >
-            <span className="text-white font-bold tracking-[0.2em] text-lg">{data.orderNumber}</span>
+            <span className="text-white font-bold tracking-[0.2em] text-lg">{orderNumber}</span>
           </div>
         </div>
 
@@ -170,8 +177,8 @@ const DigitalReceipt = ({ data, payment, onBack, onDownload, isPreview = false }
         <div className="space-y-1 mb-4 px-2">
           <div className="text-gray-800 text-sm font-bold opacity-80">{separator}</div>
           <div className="flex justify-between items-center text-xs font-bold text-gray-700">
-            <span>{data.createdAt}</span>
-            <span>Admin</span>
+            <span>{data.createdAt || data.date}</span>
+            <span>{data.cashier || (data.is_ots ? 'Kasir: OTS Staff' : 'Online Store')}</span>
           </div>
           <div className="text-gray-800 text-sm font-bold opacity-80">{separator}</div>
         </div>
@@ -181,7 +188,7 @@ const DigitalReceipt = ({ data, payment, onBack, onDownload, isPreview = false }
           <div className="flex text-sm">
             <span className="w-24 flex-shrink-0">Nama</span>
             <span className="mr-2">:</span>
-            <span className="font-bold">{data.nama}</span>
+            <span className="font-bold">{customerName}</span>
           </div>
           {/* For Cheki order (Single Contact Field) */}
           {!isMerch && data.kontak && (
@@ -200,11 +207,11 @@ const DigitalReceipt = ({ data, payment, onBack, onDownload, isPreview = false }
           )}
 
           {/* For Merch order (Two Contact Fields) */}
-          {isMerch && data.whatsapp && (
+          {isMerch && (data.whatsapp || data.kontak) && (
             <div className="flex text-sm">
               <span className="w-24 flex-shrink-0">WhatsApp</span>
               <span className="mr-2">:</span>
-              <span>{maskEnabled ? maskPhone(data.whatsapp) : data.whatsapp}</span>
+              <span>{maskEnabled ? maskPhone(data.whatsapp || data.kontak) : (data.whatsapp || data.kontak)}</span>
             </div>
           )}
           {isMerch && data.instagram && (
@@ -226,21 +233,25 @@ const DigitalReceipt = ({ data, payment, onBack, onDownload, isPreview = false }
 
         {/* Items Section */}
         <div className="space-y-4 mb-4 px-4">
-          {data.items.map((item, idx) => (
-            <div key={idx} className="flex flex-col text-left">
-              <h4 className="text-sm font-bold uppercase leading-tight mb-1" style={{ color: accentColor }}>
-                {item.name} {item.size ? `(${item.size})` : ''}
-              </h4>
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-gray-600 font-bold">
-                  {item.quantity} x IDR {item.price?.toLocaleString('id-ID')}
-                </p>
-                <span className="text-sm font-bold font-mono" style={{ color: accentColor }}>
-                  IDR {(item.price * item.quantity).toLocaleString('id-ID')}
-                </span>
+          {data.items.map((item, idx) => {
+            const hasSizeInName = item.size && item.name?.includes(`(${item.size})`)
+            const displayName = item.size && !hasSizeInName ? `${item.name} (${item.size})` : item.name
+            return (
+              <div key={idx} className="flex flex-col text-left">
+                <h4 className="text-sm font-bold uppercase leading-tight mb-1" style={{ color: accentColor }}>
+                  {displayName}
+                </h4>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-gray-600 font-bold">
+                    {item.quantity} x IDR {item.price?.toLocaleString('id-ID')}
+                  </p>
+                  <span className="text-sm font-bold font-mono" style={{ color: accentColor }}>
+                    IDR {(item.price * item.quantity).toLocaleString('id-ID')}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Divider */}

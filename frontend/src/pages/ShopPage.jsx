@@ -324,15 +324,18 @@ const ShopPage = () => {
 
         const orderObj = res.data.order || res.data.data?.order || res.data.data || res.data || {}
         const orderId = orderObj.order_number || res.data.order_number || orderObj.id || res.data.order_id || `NZ${Date.now()}`
+        const finalOrderNumber = orderObj.order_number || res.data.order_number || orderId
 
         const orderSummary = {
           orderId,
-          order_number: orderObj.order_number || res.data.order_number || orderId,
+          order_number: finalOrderNumber,
+          orderNumber: finalOrderNumber,
+          isMerch: false,
           date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
           customerName: formData.nama_panggilan,
           nama: formData.nama_panggilan,
           kontak: formData.kontak,
-          catatan: formData.catatan,
+          catatan: formData.catatan || '-',
           eventName: uniqueEvents.join(', ') || '-',
           items: orderData.items.map(item => ({
             name: item.nama,
@@ -426,16 +429,24 @@ const ShopPage = () => {
 
         const orderObj = res.data.order || res.data.data?.order || res.data.data || res.data || {}
         const orderId = orderObj.order_number || res.data.order_number || orderObj.id || res.data.order_id || `NZM${Date.now()}`
+        const finalOrderNumber = orderObj.order_number || res.data.order_number || orderId
 
         const orderSummary = {
           orderId,
-          order_number: orderObj.order_number || res.data.order_number || orderId,
+          order_number: finalOrderNumber,
+          orderNumber: finalOrderNumber,
+          isMerch: true,
           date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
           customerName: merchForm.nama_lengkap,
-          eventName: 'Official Merchandise',
-          eventDate: '-',
+          nama: merchForm.nama_lengkap,
+          nama_lengkap: merchForm.nama_lengkap,
+          whatsapp: merchForm.whatsapp,
+          instagram: merchForm.instagram,
+          catatan: merchForm.catatan || '-',
+          eventName: null,
           items: orderData.items.map(item => ({
-            name: item.nama + (item.size ? ` (${item.size})` : ''),
+            name: item.nama,
+            size: item.size || null,
             quantity: item.quantity,
             price: item.harga
           })),
