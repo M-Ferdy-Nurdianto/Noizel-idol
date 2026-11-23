@@ -13,6 +13,7 @@ import merchandiseRoutes from './routes/merchandise.js'
 import merchOrdersRoutes from './routes/merchOrders.js'
 import merchBatchRoutes from './routes/merchBatches.js'
 import { rateLimiter } from './middleware/rateLimiter.js'
+import { supabase } from './config/supabase.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -61,8 +62,31 @@ app.use('/api/merch-orders', merchOrdersRoutes)
 app.use('/api/orders/merchandise', merchOrdersRoutes)
 app.use('/api/merch-batches', merchBatchRoutes)
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Noize API Running' })
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'disconnected'
+  try {
+    const { error } = await supabase.from('config').select('id').limit(1)
+    if (!error) dbStatus = 'connected'
+  } catch (e) {
+    dbStatus = 'error'
+  }
+  res.json({
+    status: 'OK',
+    message: 'Noize API Running',
+    database: dbStatus,
+    timestamp: new Date().toISOString()
+  })
+})
+
+app.get('/api/cron/keep-alive', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('config').select('id').limit(1)
+    if (error) throw error
+    res.json({ success: true, message: 'Keep-alive success', data })
+  } catch (error) {
+    console.error('Cron Keep-alive failed:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
 })
 
 app.use((err, req, res, next) => {

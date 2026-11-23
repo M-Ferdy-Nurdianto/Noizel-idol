@@ -1,16 +1,98 @@
 {
-  "buildCommand": "cd frontend && npm run build",
-  "outputDirectory": "frontend/dist",
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "backend/**"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "api": {
+      "root": "api",
+      "framework": "express"
+    },
+    "backend": {
+      "root": "backend",
+      "framework": "express"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite"
     }
   },
   "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
-    { "source": "/robots.txt", "destination": "/robots.txt" },
-    { "source": "/api", "destination": "/api/index.js" },
-    { "source": "/api/:match*", "destination": "/api/index.js" },
-    { "source": "/((?!api).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/images/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/data/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/noize-logo.png",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/noize-logo-white.png",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/robots.txt",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/sw.js",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/workbox-(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend",
+        "path": "/index.html"
+      }
+    }
   ]
 }
