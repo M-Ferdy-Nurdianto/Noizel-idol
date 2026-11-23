@@ -16,7 +16,7 @@ const DEFAULT_TRACKS = [
     url: 'https://open.spotify.com/track/7qiZfU4dY1lWllzX7mPBI3',
     title: 'Cyber Frequency (Stage Debut Mix)',
     artist: 'NOIZE',
-    cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e02a5c531d0411a0c441b4e2bf8',
+    cover_url: '/noize-logo.png',
     embed_url: 'https://open.spotify.com/embed/track/7qiZfU4dY1lWllzX7mPBI3'
   },
   {
@@ -78,6 +78,7 @@ const SpotifySection = ({ tracks = [], customText = {} }) => {
                     <img 
                       src={track.cover_url} 
                       alt={track.title} 
+                      onError={(e) => { e.currentTarget.src = '/noize-logo.png' }}
                       className="w-full h-full object-cover group-hover/cover:scale-105 transition-transform duration-500"
                     />
                   ) : (

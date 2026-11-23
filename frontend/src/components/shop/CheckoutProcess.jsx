@@ -377,6 +377,7 @@ const CheckoutProcess = ({
   const [showQrisModal, setShowQrisModal] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const dragCounter = useRef(0)
+  const { links: socialLinks } = useSocialLinks()
 
   // Otomatis sinkronisasi metode pembayaran yang valid & aktif
   useEffect(() => {
@@ -426,7 +427,6 @@ const CheckoutProcess = ({
   // --- RECEIPT SCREENS (STEP 3 & STEP 5) ---
   if (step === 3 || step === 5) {
     const data = step === 3 ? receiptData : merchReceiptData
-    const { links: socialLinks } = useSocialLinks()
     const waChannelUrl = (data?.whatsapp_channel || socialLinks?.whatsapp_channel || '').trim()
     
     return (

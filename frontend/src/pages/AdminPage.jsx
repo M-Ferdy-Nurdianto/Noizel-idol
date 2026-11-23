@@ -133,6 +133,7 @@ const AdminPage = () => {
   const [merchSizeChartFiles, setMerchSizeChartFiles] = useState([null])
   const [merchSizeChartPreviews, setMerchSizeChartPreviews] = useState([''])
   const [availableSizes, setAvailableSizes] = useState('')
+  const [merchHargaRaw, setMerchHargaRaw] = useState('')
   const [merchSaving, setMerchSaving] = useState(false)
   const merchFileInputRef = useRef(null)
   const extraImagesInputRef = useRef(null)
@@ -705,8 +706,6 @@ const AdminPage = () => {
     if (Number.isNaN(num)) return ''
     return Math.round(num * multiplier)
   }
-
-  const [merchHargaRaw, setMerchHargaRaw] = useState('')
 
   const handleHargaChange = (val) => {
     setMerchHargaRaw(val)

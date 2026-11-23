@@ -5,6 +5,7 @@ import { ToastContainer, Zoom } from 'react-toastify'
 import { NzToastContainer } from './components/ui/NzToast'
 import LoadingSpinner from './components/LoadingSpinner'
 import PageSkeleton from './components/PageSkeleton'
+import AdminSkeleton from './components/admin/AdminSkeleton'
 import ScrollToTop from './components/ScrollToTop'
 
 // Lazy Load Active Pages
@@ -36,6 +37,11 @@ function MaintenanceGuard({ children }) {
   }
 
   return children
+}
+
+function RouteFallback() {
+  const isPathAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+  return isPathAdmin ? <AdminSkeleton /> : <PageSkeleton />
 }
 
 function App() {
@@ -75,7 +81,7 @@ function App() {
             transition={Zoom}
             toastStyle={{ backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}
           />
-          <Suspense fallback={<PageSkeleton />}>
+          <Suspense fallback={<RouteFallback />}>
             <Routes>
               {/* Public Core Routes protected by MaintenanceGuard */}
               <Route path="/" element={<MaintenanceGuard><HomePage /></MaintenanceGuard>} />
