@@ -75,9 +75,7 @@ app.use((err, req, res, next) => {
 
 export default app
 
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`[Server] Noize backend running on port ${PORT}`)
-    console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`)
-  })
-}
+app.listen(PORT, () => {
+  console.log(`[Server] Noize backend running on port ${PORT}`)
+  console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`)
+})

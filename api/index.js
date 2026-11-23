@@ -51,16 +51,67 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
 app.use(rateLimiter)
 
-app.use('/api/auth', authRoutes)
-app.use('/api/orders', orderRoutes)
-app.use('/api/members', memberRoutes)
-app.use('/api/events', eventRoutes)
-app.use('/api/config', configRoutes)
-app.use('/api/faqs', faqRoutes)
-app.use('/api/upload', uploadRoutes)
-app.use('/api/merchandise', merchandiseRoutes)
-app.use('/api/merch-orders', merchOrdersRoutes)
-app.use('/api/merch-batches', merchBatchRoutes)
+// If BACKEND_URL binding is provided by Vercel Services, forward requests to internal backend service
+if (process.env.BACKEND_URL) {
+  console.log(`[API Gateway] Forwarding requests to internal backend service: ${process.env.BACKEND_URL}`)
+  app.use(async (req, res, next) => {
+    try {
+      const targetUrl = new URL(req.originalUrl, process.env.BACKEND_URL)
+      
+      const headers = {}
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (key.toLowerCase() !== 'host') {
+          headers[key] = value
+        }
+      }
+
+      const fetchOptions = {
+        method: req.method,
+        headers
+      }
+
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        if (req.is('application/json') || typeof req.body === 'object') {
+          fetchOptions.body = JSON.stringify(req.body)
+          headers['content-type'] = 'application/json'
+        } else if (req.body) {
+          fetchOptions.body = req.body
+        }
+      }
+
+      const backendResponse = await fetch(targetUrl, fetchOptions)
+      
+      res.status(backendResponse.status)
+      backendResponse.headers.forEach((val, key) => {
+        if (key.toLowerCase() !== 'transfer-encoding') {
+          res.setHeader(key, val)
+        }
+      })
+
+      const buffer = await backendResponse.arrayBuffer()
+      return res.send(Buffer.from(buffer))
+    } catch (err) {
+      console.error('[API Gateway] Proxy forward error:', err)
+      return res.status(502).json({
+        error: 'Bad Gateway',
+        message: 'Failed to communicate with internal backend service',
+        details: err.message
+      })
+    }
+  })
+} else {
+  // Direct local routes fallback (when running standalone or without Vercel service binding)
+  app.use('/api/auth', authRoutes)
+  app.use('/api/orders', orderRoutes)
+  app.use('/api/members', memberRoutes)
+  app.use('/api/events', eventRoutes)
+  app.use('/api/config', configRoutes)
+  app.use('/api/faqs', faqRoutes)
+  app.use('/api/upload', uploadRoutes)
+  app.use('/api/merchandise', merchandiseRoutes)
+  app.use('/api/merch-orders', merchOrdersRoutes)
+  app.use('/api/merch-batches', merchBatchRoutes)
+}
 
 app.get('/api/health', cachePublic({ sMaxAge: 30, maxAge: 10 }), async (req, res) => {
   let dbStatus = 'disconnected'
