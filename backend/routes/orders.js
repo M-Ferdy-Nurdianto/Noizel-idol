@@ -646,6 +646,53 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       .select('id, nama, tanggal, bulan, tahun, lokasi, is_past')
     const eventsMap = new Map((allEventsData || []).map(e => [String(e.id), e]))
 
+    // Ambil master member dari DB untuk normalisasi nama member
+    const { data: allMembersData } = await supabase
+      .from('members')
+      .select('id, member_id, nama_panggung, nama')
+    const membersList = allMembersData || []
+
+    const getCleanMemberName = (item) => {
+      const rawName = String(item?.item_name || '')
+      if (
+        rawName.toLowerCase().includes('all member') ||
+        rawName.toLowerCase().includes('group') ||
+        rawName.toLowerCase().includes('grup')
+      ) {
+        return 'All Member (Group)'
+      }
+
+      if (item?.member_id && membersList.length > 0) {
+        const found = membersList.find(m => String(m.id) === String(item.member_id) || m.member_id === String(item.member_id))
+        if (found) {
+          if (found.member_id === 'group' || found.nama_panggung === 'NOIZE') return 'All Member (Group)'
+          if (found.nama_panggung) return found.nama_panggung.trim()
+          if (found.nama) return found.nama.trim()
+        }
+      }
+
+      let cleaned = rawName
+        .replace(/^Cheki\s+/i, '')
+        .replace(/\s*\(Pre-Order\)/i, '')
+        .trim()
+
+      if (cleaned.includes('·')) cleaned = cleaned.split('·')[0].trim()
+      if (cleaned.includes(' - ')) cleaned = cleaned.split(' - ')[0].trim()
+      if (cleaned.includes(' | ')) cleaned = cleaned.split(' | ')[0].trim()
+
+      if (membersList.length > 0) {
+        for (const m of membersList) {
+          const pName = m.nama_panggung || m.nama
+          if (pName && pName !== 'NOIZE') {
+            const regex = new RegExp(`\\b${pName}\\b`, 'i')
+            if (regex.test(cleaned)) return pName.trim()
+          }
+        }
+      }
+
+      return cleaned.replace(/[^a-zA-Z0-9\s()]/gu, '').trim()
+    }
+
     const targetEventId = (event_id && event_id !== 'all') ? String(event_id) : null
 
     let distinctEvents = []
@@ -774,14 +821,7 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       const memberStats = {}
       paidOrders.forEach(order => {
         order.order_items?.forEach(item => {
-          let name = String(item.item_name || '')
-            .replace('Cheki ', '')
-            .replace(' (Pre-Order)', '')
-            .replace(/[^a-zA-Z0-9\s()]/gu, '')
-            .trim()
-          if (name.toLowerCase().includes('all member') || name.toLowerCase().includes('group')) {
-            name = 'All Member (Group)'
-          }
+          const name = getCleanMemberName(item)
           if (!memberStats[name]) memberStats[name] = { qty: 0, otsQty: 0, poQty: 0, revenue: 0, poRev: 0, otsRev: 0 }
           const qty = item.quantity || 0
           const price = item.price || 0

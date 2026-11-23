@@ -642,7 +642,7 @@ const AdminPage = () => {
 
   const handleExportPdf = async ({ scope, value, financialConfig }) => {
     const params = scope === 'current' ? buildOrderParams() : {}
-    await generatePDF({ scope, value, params, events, api, financialConfig })
+    await generatePDF({ scope, value, params, events, members, api, financialConfig })
   }
 
   const handleExportMerchExcel = async (exportOpts) => {

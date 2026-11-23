@@ -5,6 +5,54 @@ import { getValidAdminToken } from './authSession'
 
 export const stripEmoji = (text) => String(text || '').replace(/[^a-zA-Z0-9\s()]/gu, '').trim()
 
+export const getCleanMemberName = (item, memList = []) => {
+  const rawName = String(item?.item_name || '')
+  if (
+    rawName.toLowerCase().includes('all member') ||
+    rawName.toLowerCase().includes('group') ||
+    rawName.toLowerCase().includes('grup')
+  ) {
+    return 'All Member (Group)'
+  }
+
+  const list = Array.isArray(memList) ? memList : []
+
+  // 1. Cek dari member_id jika ada
+  if (item?.member_id && list.length > 0) {
+    const found = list.find(m => String(m.id) === String(item.member_id) || m.member_id === String(item.member_id))
+    if (found) {
+      if (found.member_id === 'group' || found.nama_panggung === 'NOIZE') {
+        return 'All Member (Group)'
+      }
+      if (found.nama_panggung) return found.nama_panggung.trim()
+      if (found.nama) return found.nama.trim()
+    }
+  }
+
+  // 2. Bersihkan awalan/akhiran umum ("Cheki ", "(Pre-Order)", " · cbc · 12 DES")
+  let cleaned = rawName
+    .replace(/^Cheki\s+/i, '')
+    .replace(/\s*\(Pre-Order\)/i, '')
+    .trim()
+
+  if (cleaned.includes('·')) cleaned = cleaned.split('·')[0].trim()
+  if (cleaned.includes(' - ')) cleaned = cleaned.split(' - ')[0].trim()
+  if (cleaned.includes(' | ')) cleaned = cleaned.split(' | ')[0].trim()
+
+  // 3. Cocokkan dengan nama member yang terdaftar jika string masih mengandung embel-embel
+  if (list.length > 0) {
+    for (const m of list) {
+      const pName = m.nama_panggung || m.nama
+      if (pName && pName !== 'NOIZE') {
+        const regex = new RegExp(`\\b${pName}\\b`, 'i')
+        if (regex.test(cleaned)) return pName.trim()
+      }
+    }
+  }
+
+  return cleaned.replace(/[^a-zA-Z0-9\s()]/gu, '').trim()
+}
+
 export const getMerchUnitEconomics = (productName, avgPrice) => {
   const lower = String(productName || '').toLowerCase()
   if (lower.includes('t-shirt') || lower.includes('tshirt') || lower.includes('kaos') || lower.includes('baju')) {
@@ -853,11 +901,19 @@ export const generateMerchPDF = async ({ api, scope = 'all', value, statusFilter
   }
 }
 
-export const generatePDF = async ({ api, scope, value, params, events, financialConfig }) => {
+export const generatePDF = async ({ api, scope, value, params, events, members, financialConfig }) => {
   try {
     Swal.fire({ title: 'Generating PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
     const exportParams = { ...params }
     let monthDisplay = ''
+
+    let membersList = Array.isArray(members) ? members : []
+    if (membersList.length === 0 && api) {
+      try {
+        const memRes = await api.get('/members')
+        membersList = memRes.data.data || []
+      } catch (_) {}
+    }
 
     if (scope === 'event') {
       exportParams.event_id = value
@@ -1054,10 +1110,7 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
       const memberStats = {}
       paidOrders.forEach(order => {
         order.order_items?.forEach(item => {
-          let name = stripEmoji(String(item.item_name || '').replace('Cheki ', '').replace(' (Pre-Order)', ''))
-          if (name.toLowerCase().includes('all member') || name.toLowerCase().includes('group')) {
-            name = 'All Member (Group)'
-          }
+          const name = getCleanMemberName(item, membersList)
           if (!memberStats[name]) memberStats[name] = { qty: 0, otsQty: 0, poQty: 0, revenue: 0, poRevenue: 0, otsRevenue: 0 }
           const qty = item.quantity || 0
           const price = Number(item.price ?? item.harga ?? 0)
