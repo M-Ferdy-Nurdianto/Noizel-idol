@@ -867,6 +867,7 @@ const OrdersTab = ({
           onClose={() => setShowExportModal(false)}
           onExport={handleTriggerExport}
           events={events}
+          currentEventId={eventFilter}
         />
       )}
 

@@ -27,7 +27,7 @@ const DEFAULT_SALARY_CONFIG = {
 
 const STORAGE_KEY = 'noize_salary_config'
 
-const ExportModal = memo(({ isOpen, onClose, onExport, events = [] }) => {
+const ExportModal = memo(({ isOpen, onClose, onExport, events = [], currentEventId = 'all' }) => {
   const [format, setFormat] = useState('excel') // 'excel' | 'pdf'
   const [scope, setScope] = useState('current') // 'current' | 'event' | 'month'
   const [selectedEventId, setSelectedEventId] = useState('')
@@ -41,8 +41,13 @@ const ExportModal = memo(({ isOpen, onClose, onExport, events = [] }) => {
   useEffect(() => {
     if (isOpen) {
       setFormat('excel')
-      setScope('current')
-      if (events.length > 0) setSelectedEventId(events[0].id)
+      if (currentEventId && currentEventId !== 'all') {
+        setSelectedEventId(currentEventId)
+        setScope('event')
+      } else {
+        setScope('current')
+        if (events.length > 0) setSelectedEventId(events[0].id)
+      }
 
       try {
         const saved = localStorage.getItem(STORAGE_KEY)
@@ -54,7 +59,7 @@ const ExportModal = memo(({ isOpen, onClose, onExport, events = [] }) => {
         console.warn('Could not load saved salary config', err)
       }
     }
-  }, [isOpen, events])
+  }, [isOpen, events, currentEventId])
 
   const updateConfig = (key, value) => {
     setFinancialConfig(prev => {
@@ -78,10 +83,12 @@ const ExportModal = memo(({ isOpen, onClose, onExport, events = [] }) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(financialConfig))
     } catch (_) {}
 
+    const activeEventId = selectedEventId || (events.length > 0 ? events[0].id : null)
+
     const exportData = {
       format,
       scope,
-      value: scope === 'event' ? selectedEventId : scope === 'month' ? selectedMonth : null,
+      value: scope === 'event' ? activeEventId : scope === 'month' ? selectedMonth : null,
       financialConfig
     }
     onExport(exportData)

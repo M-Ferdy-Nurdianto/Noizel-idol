@@ -905,37 +905,93 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
       return String(status || '-').toUpperCase()
     }
 
-    // Kelompokkan order berdasarkan event
-    const eventGroupsMap = new Map()
-    orders.forEach(order => {
-      const eId = order.event_id ? String(order.event_id) : 'unknown'
-      if (!eventGroupsMap.has(eId)) {
-        const ev = events?.find(e => String(e.id) === eId)
-        const label = ev ? `${ev.nama} (${ev.tanggal || ''} ${ev.bulan || ''} ${ev.tahun || ''})` : 'Order Non-Event / Umum'
-        eventGroupsMap.set(eId, {
-          id: eId,
-          eventObj: ev,
-          nama: ev ? ev.nama : 'Non-Event / Umum',
-          fullLabel: label,
-          lokasi: ev?.lokasi || '-',
-          orders: []
+    const specificEventId = (scope === 'event' && value)
+      ? String(value)
+      : (scope === 'current' && exportParams.event_id && exportParams.event_id !== 'all' ? String(exportParams.event_id) : null)
+
+    let distinctEvents = []
+    let isMultiEvent = false
+
+    if (specificEventId) {
+      // ─── MODE: SPESIFIK 1 EVENT ───
+      isMultiEvent = false
+      const ev = events?.find(e => String(e.id) === specificEventId)
+      const label = ev ? `${ev.nama} (${ev.tanggal || ''} ${ev.bulan || ''} ${ev.tahun || ''})` : 'Event'
+
+      // Filter item per order hanya untuk event yang dipilih agar tidak kecampur dengan item event lain
+      const eventOrders = []
+      orders.forEach(order => {
+        const matchingItems = (order.order_items || []).filter(item => {
+          const itemEvId = item.event_id || order.event_id
+          return String(itemEvId) === specificEventId
         })
+
+        if (matchingItems.length > 0) {
+          const eventLineTotal = matchingItems.reduce((sum, item) => {
+            const qty = item.quantity || 0
+            const price = Number(item.price ?? item.harga ?? 0)
+            return sum + (qty * price)
+          }, 0)
+
+          eventOrders.push({
+            ...order,
+            order_items: matchingItems,
+            total_harga: eventLineTotal > 0 ? eventLineTotal : order.total_harga,
+            _eventName: ev ? ev.nama : 'Event'
+          })
+        } else if (String(order.event_id) === specificEventId) {
+          eventOrders.push({
+            ...order,
+            _eventName: ev ? ev.nama : 'Event'
+          })
+        }
+      })
+
+      if (eventOrders.length === 0) {
+        throw new Error(`Tidak ada order untuk event "${ev?.nama || label}".`)
       }
-      const eg = eventGroupsMap.get(eId)
-      eg.orders.push(order)
 
-      const orderItemEvents = (order.order_items || [])
-        .map(i => i.event_id || order.event_id)
-        .filter(Boolean)
-      const uniqueEvIds = [...new Set(orderItemEvents)]
-      const names = uniqueEvIds
-        .map(id => events?.find(e => String(e.id) === String(id))?.nama || (order.events && String(order.events.id) === String(id) ? order.events.nama : null))
-        .filter(Boolean)
-      order._eventName = names.length > 0 ? names.join(', ') : eg.nama
-    })
+      distinctEvents = [{
+        id: specificEventId,
+        eventObj: ev,
+        nama: ev ? ev.nama : 'Event',
+        fullLabel: label,
+        lokasi: ev?.lokasi || '-',
+        orders: eventOrders
+      }]
+    } else {
+      // ─── MODE: BULANAN ATAU KONSOLIDASI SEMUA EVENT ───
+      const eventGroupsMap = new Map()
+      orders.forEach(order => {
+        const eId = order.event_id ? String(order.event_id) : 'unknown'
+        if (!eventGroupsMap.has(eId)) {
+          const ev = events?.find(e => String(e.id) === eId)
+          const label = ev ? `${ev.nama} (${ev.tanggal || ''} ${ev.bulan || ''} ${ev.tahun || ''})` : 'Order Non-Event / Umum'
+          eventGroupsMap.set(eId, {
+            id: eId,
+            eventObj: ev,
+            nama: ev ? ev.nama : 'Non-Event / Umum',
+            fullLabel: label,
+            lokasi: ev?.lokasi || '-',
+            orders: []
+          })
+        }
+        const eg = eventGroupsMap.get(eId)
+        eg.orders.push(order)
 
-    const distinctEvents = Array.from(eventGroupsMap.values())
-    const isMultiEvent = distinctEvents.length > 1 || scope === 'month'
+        const orderItemEvents = (order.order_items || [])
+          .map(i => i.event_id || order.event_id)
+          .filter(Boolean)
+        const uniqueEvIds = [...new Set(orderItemEvents)]
+        const names = uniqueEvIds
+          .map(id => events?.find(e => String(e.id) === String(id))?.nama || (order.events && String(order.events.id) === String(id) ? order.events.nama : null))
+          .filter(Boolean)
+        order._eventName = names.length > 0 ? names.join(', ') : eg.nama
+      })
+
+      distinctEvents = Array.from(eventGroupsMap.values())
+      isMultiEvent = scope === 'month' || distinctEvents.length > 1
+    }
 
     // Konfigurasi finansial & pembagian gaji (Default atau Custom dari Admin)
     const finCfg = {
@@ -1511,8 +1567,9 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
     // 6. DETAIL TRANSAKSI LENGKAP
     addSectionHeader('DETAIL TRANSAKSI LENGKAP')
 
-    const allOtsOrders = orders.filter(o => o.is_ots)
-    const allPoOrders = orders.filter(o => !o.is_ots)
+    const allExportOrders = distinctEvents.flatMap(eg => eg.orders)
+    const allOtsOrders = allExportOrders.filter(o => o.is_ots)
+    const allPoOrders = allExportOrders.filter(o => !o.is_ots)
 
     const tableHeaders = ['Kode', 'Customer', 'Kontak']
     if (isMultiEvent) tableHeaders.push('Event')

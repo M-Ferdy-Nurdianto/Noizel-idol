@@ -646,44 +646,94 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       .select('id, nama, tanggal, bulan, tahun, lokasi, is_past')
     const eventsMap = new Map((allEventsData || []).map(e => [String(e.id), e]))
 
-    // Tempelkan eventObj ke masing-masing order
-    orders.forEach(order => {
-      const itemEvIds = (order.order_items || [])
-        .map(i => i.event_id || order.event_id)
-        .filter(Boolean)
-      const uniqueEvIds = [...new Set(itemEvIds)]
-      if (uniqueEvIds.length > 0) {
-        const names = uniqueEvIds.map(id => eventsMap.get(String(id))?.nama).filter(Boolean)
-        order._eventName = names.length > 0 ? names.join(', ') : (order.is_ots ? 'OTS Non-Event' : 'Umum / Lainnya')
-      } else {
-        const ev = order.event_id ? eventsMap.get(String(order.event_id)) : null
-        order._eventName = ev ? ev.nama : (order.is_ots ? 'OTS Non-Event' : 'Umum / Lainnya')
-      }
-      const primaryEv = order.event_id ? eventsMap.get(String(order.event_id)) : (uniqueEvIds[0] ? eventsMap.get(String(uniqueEvIds[0])) : null)
-      order._eventObj = primaryEv
-    })
+    const targetEventId = (event_id && event_id !== 'all') ? String(event_id) : null
 
-    // Kelompokkan order berdasarkan event
-    const eventGroupsMap = new Map()
-    orders.forEach(order => {
-      const eId = order.event_id ? String(order.event_id) : 'unknown'
-      if (!eventGroupsMap.has(eId)) {
-        const ev = order._eventObj
-        const label = ev ? `${ev.nama} (${ev.tanggal || ''} ${ev.bulan || ''} ${ev.tahun || ''})` : 'Order Non-Event / Umum'
-        eventGroupsMap.set(eId, {
-          id: eId,
-          eventObj: ev,
-          nama: ev ? ev.nama : 'Non-Event / Umum',
-          fullLabel: label,
-          lokasi: ev?.lokasi || '-',
-          orders: []
+    let distinctEvents = []
+    let isMultiEvent = false
+
+    if (targetEventId) {
+      // MODE: SPESIFIK 1 EVENT
+      isMultiEvent = false
+      const ev = eventsMap.get(targetEventId)
+      const label = ev ? `${ev.nama} (${ev.tanggal || ''} ${ev.bulan || ''} ${ev.tahun || ''})` : 'Event'
+
+      const eventOrders = []
+      orders.forEach(order => {
+        const matchingItems = (order.order_items || []).filter(item => {
+          const itemEvId = item.event_id || order.event_id
+          return String(itemEvId) === targetEventId
         })
-      }
-      eventGroupsMap.get(eId).orders.push(order)
-    })
 
-    const distinctEvents = Array.from(eventGroupsMap.values())
-    const isMultiEvent = distinctEvents.length > 1 || Boolean(month)
+        if (matchingItems.length > 0) {
+          const eventLineTotal = matchingItems.reduce((sum, item) => {
+            const qty = item.quantity || 0
+            const price = Number(item.price ?? item.harga ?? 0)
+            return sum + (qty * price)
+          }, 0)
+
+          eventOrders.push({
+            ...order,
+            order_items: matchingItems,
+            total_harga: eventLineTotal > 0 ? eventLineTotal : order.total_harga,
+            _eventName: ev ? ev.nama : 'Event',
+            _eventObj: ev
+          })
+        } else if (String(order.event_id) === targetEventId) {
+          eventOrders.push({
+            ...order,
+            _eventName: ev ? ev.nama : 'Event',
+            _eventObj: ev
+          })
+        }
+      })
+
+      distinctEvents = [{
+        id: targetEventId,
+        eventObj: ev,
+        nama: ev ? ev.nama : 'Event',
+        fullLabel: label,
+        lokasi: ev?.lokasi || '-',
+        orders: eventOrders
+      }]
+    } else {
+      // MODE: KONSOLIDASI BULANAN ATAU SEMUA EVENT
+      orders.forEach(order => {
+        const itemEvIds = (order.order_items || [])
+          .map(i => i.event_id || order.event_id)
+          .filter(Boolean)
+        const uniqueEvIds = [...new Set(itemEvIds)]
+        if (uniqueEvIds.length > 0) {
+          const names = uniqueEvIds.map(id => eventsMap.get(String(id))?.nama).filter(Boolean)
+          order._eventName = names.length > 0 ? names.join(', ') : (order.is_ots ? 'OTS Non-Event' : 'Umum / Lainnya')
+        } else {
+          const ev = order.event_id ? eventsMap.get(String(order.event_id)) : null
+          order._eventName = ev ? ev.nama : (order.is_ots ? 'OTS Non-Event' : 'Umum / Lainnya')
+        }
+        const primaryEv = order.event_id ? eventsMap.get(String(order.event_id)) : (uniqueEvIds[0] ? eventsMap.get(String(uniqueEvIds[0])) : null)
+        order._eventObj = primaryEv
+      })
+
+      const eventGroupsMap = new Map()
+      orders.forEach(order => {
+        const eId = order.event_id ? String(order.event_id) : 'unknown'
+        if (!eventGroupsMap.has(eId)) {
+          const ev = order._eventObj
+          const label = ev ? `${ev.nama} (${ev.tanggal || ''} ${ev.bulan || ''} ${ev.tahun || ''})` : 'Order Non-Event / Umum'
+          eventGroupsMap.set(eId, {
+            id: eId,
+            eventObj: ev,
+            nama: ev ? ev.nama : 'Non-Event / Umum',
+            fullLabel: label,
+            lokasi: ev?.lokasi || '-',
+            orders: []
+          })
+        }
+        eventGroupsMap.get(eId).orders.push(order)
+      })
+
+      distinctEvents = Array.from(eventGroupsMap.values())
+      isMultiEvent = distinctEvents.length > 1 || Boolean(month)
+    }
 
     // Kalkulasi data per event dan akumulasi bulanan
     let grandTotalRevenue = 0
@@ -1300,8 +1350,9 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       })
     }
 
-    const allOtsOrders = orders.filter(o => o.is_ots)
-    const allPoOrders = orders.filter(o => !o.is_ots)
+    const allExportOrders = distinctEvents.flatMap(eg => eg.orders)
+    const allOtsOrders = allExportOrders.filter(o => o.is_ots)
+    const allPoOrders = allExportOrders.filter(o => !o.is_ots)
 
     addOrderSection('TRANSAKSI ON THE SPOT (OTS)', 'FFD97706', allOtsOrders)
     worksheet.addRow([])
