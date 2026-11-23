@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://noize.vercel.app/sitemap.xml

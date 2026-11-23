@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production builds
+build/
+dist/
+**/dist/
+
+# Misc
+.DS_Store
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files & secrets (NEVER commit live keys)
+.env
+.env.*
+.env.cloud
+**/.env
+**/.env.*
+**/.env.cloud
+!.env.example
+!.env.cloud.example
+!**/.env.example
+!**/.env.cloud.example
+
+# Supabase local temp
+supabase/.temp/
+supabase/.branches/
+**/.temp/
+**/.branches/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.fleet
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
