@@ -1340,7 +1340,7 @@ export const generatePDF = async ({ api, scope, value, params, events, members, 
     // Helper untuk Section Header Ungu
     const addSectionHeader = (title, bg = [109, 40, 217]) => {
       const pageHeight = doc.internal.pageSize.getHeight()
-      if (currentY + 25 > pageHeight) {
+      if (currentY + 30 > pageHeight) {
         doc.addPage()
         currentY = 15
       }
@@ -1492,22 +1492,9 @@ export const generatePDF = async ({ api, scope, value, params, events, members, 
       // 5. RINCIAN PER EVENT
       distinctEvents.forEach((eg, egIdx) => {
         const hasEventFee = eg.eventSharePerMember > 0
-        const sectionTitle = isMultiEvent
-          ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}`
-          : `RINCIAN GAJI & FEE MEMBER (PO ${poFeeLabel}, OTS ${otsFeeLabel}, Grup dibagi rata ${eg.activeMemberCount} member)`
-
-        addSectionHeader(sectionTitle)
-
-        // Banner info Event Fee jika ada
-        if (eg.eventFeeGross > 0) {
-          doc.setFontSize(7.5)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(107, 33, 168)
-          doc.text(`Skema Event Fee: Rp ${eg.eventFeeGross.toLocaleString('id-ID')} | Potong Staff: Rp ${eg.eventStaffCut.toLocaleString('id-ID')} | Cut Mgmt (${finCfg.eventMgmtPercent}%): Rp ${eg.eventMgmtCut.toLocaleString('id-ID')} | Pool Member (${100 - finCfg.eventMgmtPercent}%): Rp ${eg.eventMemberPool.toLocaleString('id-ID')} (Rp ${eg.eventSharePerMember.toLocaleString('id-ID')}/member)`, 14, currentY + 3)
-          currentY += 6
-        }
 
         if (isMultiEvent) {
+          addSectionHeader(`RINCIAN PERHITUNGAN EVENT ${egIdx + 1}: ${eg.fullLabel}`)
           autoTable(doc, {
             startY: currentY,
             head: [['TOTAL OMSET', 'MODAL FILM', 'TOTAL STAFF', 'FEE MEMBER', 'PROFIT MGMT']],
@@ -1524,62 +1511,221 @@ export const generatePDF = async ({ api, scope, value, params, events, members, 
             bodyStyles: { fontStyle: 'bold', textColor: [109, 40, 217] },
             margin: { left: 14, right: 14 }
           })
-          currentY = doc.lastAutoTable.finalY + 4
+          currentY = doc.lastAutoTable.finalY + 6
         }
 
-        const evMemRows = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b)).map(name => {
-          const d = eg.memberFeeDetails[name]
-          const rowData = [
-            name,
-            d.poQty,
-            formatCurrency(d.poFee),
-            d.otsQty,
-            formatCurrency(d.otsFee),
-            formatCurrency(d.groupShare)
-          ]
-          if (hasEventFee) rowData.push(formatCurrency(d.eventFee))
-          rowData.push(formatCurrency(d.totalTakeHome))
-          return rowData
-        })
+        const sortedMemberNames = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b))
+        const totalPoFee = Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.poFee || 0), 0)
+        const totalOtsFee = Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.otsFee || 0), 0)
+        const totalGroupShare = Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.groupShare || 0), 0)
+        const totalChekiFee = totalPoFee + totalOtsFee + totalGroupShare
+        const totalEventFeePaid = eg.activeMemberCount * eg.eventSharePerMember
 
-        if (evMemRows.length > 0) {
-          const subtotalRow = [
-            { content: `SUBTOTAL EVENT (${eg.nama})`, styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
-            { content: String(eg.singlePoQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
-            { content: formatCurrency(eg.memberFeeDetails ? Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.poFee || 0), 0) : 0), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
-            { content: String(eg.singleOtsQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
-            { content: formatCurrency(eg.memberFeeDetails ? Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.otsFee || 0), 0) : 0), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
-            { content: formatCurrency(eg.groupPool), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } }
-          ]
-          if (hasEventFee) {
-            subtotalRow.push({ content: formatCurrency(eg.activeMemberCount * eg.eventSharePerMember), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } })
+        if (hasEventFee) {
+          // --- TABEL 1: RINCIAN GAJI PENJUALAN CHEKI ---
+          addSectionHeader(
+            isMultiEvent
+              ? `1. RINCIAN GAJI CHEKI - EVENT ${egIdx + 1}: ${eg.nama}`
+              : `1. RINCIAN GAJI PENJUALAN CHEKI (PO ${poFeeLabel}, OTS ${otsFeeLabel})`
+          )
+
+          const chekiRows = sortedMemberNames.map(name => {
+            const d = eg.memberFeeDetails[name]
+            const subtotal = (d.poFee || 0) + (d.otsFee || 0) + (d.groupShare || 0)
+            return [
+              name,
+              d.poQty,
+              formatCurrency(d.poFee),
+              d.otsQty,
+              formatCurrency(d.otsFee),
+              formatCurrency(d.groupShare),
+              formatCurrency(subtotal)
+            ]
+          })
+
+          if (chekiRows.length > 0) {
+            chekiRows.push([
+              { content: `SUBTOTAL GAJI CHEKI (${eg.nama})`, styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+              { content: String(eg.singlePoQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalPoFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: String(eg.singleOtsQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalOtsFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalGroupShare), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalChekiFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } }
+            ])
           }
-          subtotalRow.push({ content: formatCurrency(eg.totalMemberFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } })
-          evMemRows.push(subtotalRow)
+
+          autoTable(doc, {
+            startY: currentY,
+            head: [['Member / Talent', 'PO Qty', `Fee PO (${poFeeLabel})`, 'OTS Qty', `Fee OTS (${otsFeeLabel})`, 'Share Grup Cheki', 'Subtotal Gaji Cheki']],
+            body: chekiRows.length ? chekiRows : [['-', '-', '-', '-', '-', '-', '-']],
+            theme: 'grid',
+            headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
+            styles: { fontSize: 7, cellPadding: 2 },
+            columnStyles: {
+              0: { cellWidth: 42 },
+              1: { halign: 'center', cellWidth: 18 },
+              2: { halign: 'right', cellWidth: 24 },
+              3: { halign: 'center', cellWidth: 18 },
+              4: { halign: 'right', cellWidth: 24 },
+              5: { halign: 'right', cellWidth: 24 },
+              6: { halign: 'right', cellWidth: 32, fontStyle: 'bold', textColor: [109, 40, 217] }
+            },
+            margin: { left: 14, right: 14 }
+          })
+          currentY = doc.lastAutoTable.finalY + 6
+
+          // --- TABEL 2: RINCIAN GAJI EVENT EO (FEE PANGGUNG) ---
+          addSectionHeader(
+            isMultiEvent
+              ? `2. RINCIAN GAJI EVENT EO - EVENT ${egIdx + 1}: ${eg.nama}`
+              : '2. RINCIAN GAJI EVENT EO (FEE PENAMPILAN PANGGUNG)'
+          )
+
+          doc.setFontSize(7.5)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(107, 33, 168)
+          doc.text(`Skema Event Fee: Rp ${eg.eventFeeGross.toLocaleString('id-ID')} | Potong Staff: Rp ${eg.eventStaffCut.toLocaleString('id-ID')} | Cut Mgmt (${finCfg.eventMgmtPercent}%): Rp ${eg.eventMgmtCut.toLocaleString('id-ID')} | Pool Member (${100 - finCfg.eventMgmtPercent}%): Rp ${eg.eventMemberPool.toLocaleString('id-ID')} (Rp ${eg.eventSharePerMember.toLocaleString('id-ID')}/member)`, 14, currentY + 3)
+          currentY += 6
+
+          const eventRows = sortedMemberNames.map(name => {
+            const d = eg.memberFeeDetails[name]
+            return [
+              name,
+              'Lineup / Tampil',
+              `Pool Rp ${eg.eventMemberPool.toLocaleString('id-ID')} ÷ ${eg.activeMemberCount} member`,
+              formatCurrency(d.eventFee || eg.eventSharePerMember)
+            ]
+          })
+
+          if (eventRows.length > 0) {
+            eventRows.push([
+              { content: 'TOTAL FEE EVENT DIBAGIKAN KE MEMBER', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+              { content: formatCurrency(totalEventFeePaid), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } }
+            ])
+          }
+
+          autoTable(doc, {
+            startY: currentY,
+            head: [['Member / Talent', 'Status Penampilan', 'Perhitungan Pembagian Pool', 'Fee Event Bersih']],
+            body: eventRows.length ? eventRows : [['-', '-', '-', '-']],
+            theme: 'grid',
+            headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
+            styles: { fontSize: 7, cellPadding: 2 },
+            columnStyles: {
+              0: { cellWidth: 46 },
+              1: { halign: 'center', cellWidth: 32 },
+              2: { halign: 'left', cellWidth: 64 },
+              3: { halign: 'right', cellWidth: 40, fontStyle: 'bold', textColor: [109, 40, 217] }
+            },
+            margin: { left: 14, right: 14 }
+          })
+          currentY = doc.lastAutoTable.finalY + 6
+
+          // --- TABEL 3: REKAPITULASI TOTAL GAJI BERSIH (TAKE HOME PAY) ---
+          addSectionHeader(
+            isMultiEvent
+              ? `3. REKAP TOTAL GAJI DITERIMA - EVENT ${egIdx + 1}: ${eg.nama}`
+              : '3. REKAP TOTAL GAJI DITERIMA (TAKE HOME PAY)'
+          )
+
+          doc.setFontSize(7.5)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(107, 33, 168)
+          doc.text('Perhitungan gabungan: Subtotal Gaji Cheki (Tabel 1) + Fee Event EO (Tabel 2) = Total Gaji Bersih Diterima.', 14, currentY + 3)
+          currentY += 6
+
+          const recapRows = sortedMemberNames.map(name => {
+            const d = eg.memberFeeDetails[name]
+            const chekiSub = (d.poFee || 0) + (d.otsFee || 0) + (d.groupShare || 0)
+            const eventSub = d.eventFee || 0
+            return [
+              name,
+              formatCurrency(chekiSub),
+              formatCurrency(eventSub),
+              formatCurrency(d.totalTakeHome)
+            ]
+          })
+
+          if (recapRows.length > 0) {
+            recapRows.push([
+              { content: 'GRAND TOTAL PEMBAYARAN GAJI MEMBER', styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+              { content: formatCurrency(totalChekiFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalEventFeePaid), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(eg.totalMemberFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } }
+            ])
+          }
+
+          autoTable(doc, {
+            startY: currentY,
+            head: [['Member / Talent', 'Subtotal Gaji Cheki (Tabel 1)', 'Fee Event EO (Tabel 2)', 'TOTAL DITERIMA (TAKE HOME PAY)']],
+            body: recapRows.length ? recapRows : [['-', '-', '-', '-']],
+            theme: 'grid',
+            headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
+            styles: { fontSize: 7, cellPadding: 2 },
+            columnStyles: {
+              0: { cellWidth: 46 },
+              1: { halign: 'right', cellWidth: 42 },
+              2: { halign: 'right', cellWidth: 42 },
+              3: { halign: 'right', cellWidth: 52, fontStyle: 'bold', textColor: [109, 40, 217] }
+            },
+            margin: { left: 14, right: 14 }
+          })
+          currentY = doc.lastAutoTable.finalY + 8
+
+        } else {
+          // --- HANYA PENJUALAN CHEKI (TANPA EVENT FEE) ---
+          const sectionTitle = isMultiEvent
+            ? `RINCIAN GAJI MEMBER - EVENT ${egIdx + 1}: ${eg.nama}`
+            : `RINCIAN GAJI & FEE MEMBER (PO ${poFeeLabel}, OTS ${otsFeeLabel}, Grup dibagi rata ${eg.activeMemberCount} member)`
+
+          addSectionHeader(sectionTitle)
+
+          const chekiRows = sortedMemberNames.map(name => {
+            const d = eg.memberFeeDetails[name]
+            return [
+              name,
+              d.poQty,
+              formatCurrency(d.poFee),
+              d.otsQty,
+              formatCurrency(d.otsFee),
+              formatCurrency(d.groupShare),
+              formatCurrency(d.totalTakeHome)
+            ]
+          })
+
+          if (chekiRows.length > 0) {
+            chekiRows.push([
+              { content: `SUBTOTAL EVENT (${eg.nama})`, styles: { fontStyle: 'bold', fillColor: [245, 243, 255], textColor: [107, 33, 168] } },
+              { content: String(eg.singlePoQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalPoFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: String(eg.singleOtsQty), styles: { fontStyle: 'bold', halign: 'center', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalOtsFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(totalGroupShare), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } },
+              { content: formatCurrency(eg.totalMemberFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } }
+            ])
+          }
+
+          autoTable(doc, {
+            startY: currentY,
+            head: [['Member / Talent', 'PO Qty', `Fee PO (${poFeeLabel})`, 'OTS Qty', `Fee OTS (${otsFeeLabel})`, 'Share Grup Cheki', 'Total Fee Diterima']],
+            body: chekiRows.length ? chekiRows : [['-', '-', '-', '-', '-', '-', '-']],
+            theme: 'grid',
+            headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
+            styles: { fontSize: 7, cellPadding: 2 },
+            columnStyles: {
+              0: { cellWidth: 42 },
+              1: { halign: 'center', cellWidth: 18 },
+              2: { halign: 'right', cellWidth: 24 },
+              3: { halign: 'center', cellWidth: 18 },
+              4: { halign: 'right', cellWidth: 24 },
+              5: { halign: 'right', cellWidth: 24 },
+              6: { halign: 'right', cellWidth: 32, fontStyle: 'bold', textColor: [109, 40, 217] }
+            },
+            margin: { left: 14, right: 14 }
+          })
+          currentY = doc.lastAutoTable.finalY + 8
         }
-
-        const tableHead = ['Member / Talent', 'PO Qty', `Fee PO (${poFeeLabel})`, 'OTS Qty', `Fee OTS (${otsFeeLabel})`, 'Share Grup']
-        if (hasEventFee) tableHead.push('Share Event Fee')
-        tableHead.push('Total Fee Event')
-
-        autoTable(doc, {
-          startY: currentY,
-          head: [tableHead],
-          body: evMemRows.length ? evMemRows : [['-', '-', '-', '-', '-', '-', ...(hasEventFee ? ['-'] : []), '-']],
-          theme: 'grid',
-          headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
-          styles: { fontSize: 7, cellPadding: 2 },
-          columnStyles: {
-            1: { halign: 'center', cellWidth: 15 },
-            2: { halign: 'right', cellWidth: 20 },
-            3: { halign: 'center', cellWidth: 15 },
-            4: { halign: 'right', cellWidth: 20 },
-            5: { halign: 'right', cellWidth: 20 },
-            [hasEventFee ? 7 : 6]: { halign: 'right', fontStyle: 'bold', textColor: [109, 40, 217] }
-          },
-          margin: { left: 14, right: 14 }
-        })
-        currentY = doc.lastAutoTable.finalY + 8
       })
     }
 

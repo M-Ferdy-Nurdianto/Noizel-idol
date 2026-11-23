@@ -1132,18 +1132,17 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       distinctEvents.forEach((eg, egIdx) => {
         const feePoLabel = feePoMode === 'percent' ? `${feePo}%` : `${Math.round(feePo/1000)}k`
         const feeOtsLabel = feeOtsMode === 'percent' ? `${feeOts}%` : `${Math.round(feeOts/1000)}k`
-        const sectionTitle = isMultiEvent 
-          ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}` 
-          : `RINCIAN FEE & GAJI MEMBER (PO ${feePoLabel}, OTS ${feeOtsLabel}, Grup dibagi rata ${eg.activeMemberCount} member)`
-
-        const evSecRow = worksheet.addRow([sectionTitle])
-        mergeRow(evSecRow.number, 'A', 'K', sectionTitle, {
-          font: { bold: true, color: { argb: 'FFFFFFFF' } },
-          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
-          alignment: { vertical: 'middle', horizontal: 'left' }
-        })
+        const hasEventFee = eg.eventSharePerMember > 0
 
         if (isMultiEvent) {
+          const sectionTitle = `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}`
+          const evSecRow = worksheet.addRow([sectionTitle])
+          mergeRow(evSecRow.number, 'A', 'K', sectionTitle, {
+            font: { bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
+            alignment: { vertical: 'middle', horizontal: 'left' }
+          })
+
           const miniLabelRow = worksheet.addRow([])
           const miniValRow = worksheet.addRow([])
           const miniBlocks = [
@@ -1166,53 +1165,64 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
           })
           applyBorders(miniLabelRow)
           applyBorders(miniValRow)
+          worksheet.addRow([])
         }
 
-        const evMemHeaderRow = worksheet.addRow([
-          'Nama Member / Talent', '', '',
-          'PO Qty', `Fee PO (${feePoLabel})`,
-          'OTS Qty', `Fee OTS (${feeOtsLabel})`,
-          'Share Grup & Fee', '',
-          'TOTAL FEE DITERIMA', ''
-        ])
-        worksheet.mergeCells(`A${evMemHeaderRow.number}:C${evMemHeaderRow.number}`)
-        worksheet.mergeCells(`H${evMemHeaderRow.number}:I${evMemHeaderRow.number}`)
-        worksheet.mergeCells(`J${evMemHeaderRow.number}:K${evMemHeaderRow.number}`)
-        evMemHeaderRow.font = { bold: true, size: 9.5 }
-        evMemHeaderRow.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
-          cell.alignment = { vertical: 'middle', horizontal: 'center' }
-        })
-        applyBorders(evMemHeaderRow)
-
         const evSortedMembers = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b))
-        if (evSortedMembers.length === 0) {
-          const emptyRow = worksheet.addRow(['-', '', '', '-', '-', '-', '-', '-', '', '-', ''])
-          worksheet.mergeCells(`A${emptyRow.number}:C${emptyRow.number}`)
-          worksheet.mergeCells(`H${emptyRow.number}:I${emptyRow.number}`)
-          worksheet.mergeCells(`J${emptyRow.number}:K${emptyRow.number}`)
-          applyBorders(emptyRow)
-        } else {
+        const totalPoFee = Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.poFee || 0), 0)
+        const totalOtsFee = Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.otsFee || 0), 0)
+        const totalGroupShare = Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.groupShare || 0), 0)
+        const totalChekiFee = totalPoFee + totalOtsFee + totalGroupShare
+        const totalEventFeePaid = eg.activeMemberCount * eg.eventSharePerMember
+
+        if (hasEventFee) {
+          // --- TABEL 1: RINCIAN GAJI PENJUALAN CHEKI ---
+          const secTitle1 = isMultiEvent
+            ? `1. RINCIAN GAJI CHEKI - EVENT ${egIdx + 1}: ${eg.nama}`
+            : `1. RINCIAN GAJI PENJUALAN CHEKI (PO ${feePoLabel}, OTS ${feeOtsLabel})`
+          const secRow1 = worksheet.addRow([secTitle1])
+          mergeRow(secRow1.number, 'A', 'K', secTitle1, {
+            font: { bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
+            alignment: { vertical: 'middle', horizontal: 'left' }
+          })
+
+          const h1 = worksheet.addRow([
+            'Nama Member / Talent', '', '',
+            'PO Qty', `Fee PO (${feePoLabel})`,
+            'OTS Qty', `Fee OTS (${feeOtsLabel})`,
+            'Share Grup Cheki', '',
+            'SUBTOTAL GAJI CHEKI', ''
+          ])
+          worksheet.mergeCells(`A${h1.number}:C${h1.number}`)
+          worksheet.mergeCells(`H${h1.number}:I${h1.number}`)
+          worksheet.mergeCells(`J${h1.number}:K${h1.number}`)
+          h1.font = { bold: true, size: 9.5 }
+          h1.eachCell(c => {
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+            c.alignment = { vertical: 'middle', horizontal: 'center' }
+          })
+          applyBorders(h1)
+
           evSortedMembers.forEach(mName => {
             const d = eg.memberFeeDetails[mName]
+            const chekiSub = (d.poFee || 0) + (d.otsFee || 0) + (d.groupShare || 0)
             const r = worksheet.addRow([
               mName, '', '',
               d.poQty,
               d.poFee,
               d.otsQty,
               d.otsFee,
-              (d.groupShare || 0) + (d.eventFee || 0), '',
-              d.totalTakeHome, ''
+              d.groupShare, '',
+              chekiSub, ''
             ])
             worksheet.mergeCells(`A${r.number}:C${r.number}`)
             worksheet.mergeCells(`H${r.number}:I${r.number}`)
             worksheet.mergeCells(`J${r.number}:K${r.number}`)
-
             r.getCell(5).numFmt = '"Rp" #,##0'
             r.getCell(7).numFmt = '"Rp" #,##0'
             r.getCell(8).numFmt = '"Rp" #,##0'
             r.getCell(10).numFmt = '"Rp" #,##0'
-
             r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
             r.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' }
             r.getCell(5).alignment = { vertical: 'middle', horizontal: 'right' }
@@ -1224,31 +1234,277 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
             applyBorders(r)
           })
 
-          const subTotRow = worksheet.addRow([
-            `SUBTOTAL FEE EVENT (${eg.nama})`, '', '',
+          const sub1 = worksheet.addRow([
+            `SUBTOTAL GAJI CHEKI (${eg.nama})`, '', '',
             eg.singlePoQty,
-            Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.poFee || 0), 0),
+            totalPoFee,
             eg.singleOtsQty,
-            Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.otsFee || 0), 0),
-            eg.groupPool + (eg.eventMemberPool || 0), '',
-            eg.totalMemberFee, ''
+            totalOtsFee,
+            totalGroupShare, '',
+            totalChekiFee, ''
           ])
-          worksheet.mergeCells(`A${subTotRow.number}:C${subTotRow.number}`)
-          worksheet.mergeCells(`H${subTotRow.number}:I${subTotRow.number}`)
-          worksheet.mergeCells(`J${subTotRow.number}:K${subTotRow.number}`)
-          subTotRow.font = { bold: true }
-          subTotRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
-          subTotRow.getCell(5).numFmt = '"Rp" #,##0'
-          subTotRow.getCell(7).numFmt = '"Rp" #,##0'
-          subTotRow.getCell(8).numFmt = '"Rp" #,##0'
-          subTotRow.getCell(10).numFmt = '"Rp" #,##0'
-          subTotRow.getCell(10).font = { bold: true, color: { argb: 'FF6D28D9' } }
-          subTotRow.eachCell((cell, colNumber) => {
-            if (colNumber >= 4) {
-              cell.alignment = { vertical: 'middle', horizontal: [4, 6].includes(colNumber) ? 'center' : 'right' }
-            }
+          worksheet.mergeCells(`A${sub1.number}:C${sub1.number}`)
+          worksheet.mergeCells(`H${sub1.number}:I${sub1.number}`)
+          worksheet.mergeCells(`J${sub1.number}:K${sub1.number}`)
+          sub1.font = { bold: true }
+          sub1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+          sub1.getCell(5).numFmt = '"Rp" #,##0'
+          sub1.getCell(7).numFmt = '"Rp" #,##0'
+          sub1.getCell(8).numFmt = '"Rp" #,##0'
+          sub1.getCell(10).numFmt = '"Rp" #,##0'
+          sub1.getCell(10).font = { bold: true, color: { argb: 'FF6D28D9' } }
+          applyBorders(sub1)
+
+          worksheet.addRow([])
+
+          // --- TABEL 2: RINCIAN GAJI EVENT EO (FEE PANGGUNG) ---
+          const secTitle2 = isMultiEvent
+            ? `2. RINCIAN GAJI EVENT EO - EVENT ${egIdx + 1}: ${eg.nama}`
+            : '2. RINCIAN GAJI EVENT EO (FEE PENAMPILAN PANGGUNG)'
+          const secRow2 = worksheet.addRow([secTitle2])
+          mergeRow(secRow2.number, 'A', 'K', secTitle2, {
+            font: { bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
+            alignment: { vertical: 'middle', horizontal: 'left' }
           })
-          applyBorders(subTotRow)
+
+          const bannerText = `Skema Event Fee: Rp ${eg.eventFeeGross.toLocaleString('id-ID')} | Potong Staff: Rp ${eg.eventStaffCut.toLocaleString('id-ID')} | Cut Mgmt (${eventMgmtPercent}%): Rp ${eg.eventMgmtCut.toLocaleString('id-ID')} | Pool Member (${100 - eventMgmtPercent}%): Rp ${eg.eventMemberPool.toLocaleString('id-ID')} (Rp ${eg.eventSharePerMember.toLocaleString('id-ID')}/member)`
+          const bRow = worksheet.addRow([bannerText])
+          mergeRow(bRow.number, 'A', 'K', bannerText, {
+            font: { size: 9, color: { argb: 'FF6B21A8' } },
+            alignment: { vertical: 'middle', horizontal: 'left' }
+          })
+
+          const h2 = worksheet.addRow([
+            'Nama Member / Talent', '', '',
+            'Status Penampilan', '', '',
+            'Perhitungan Pembagian Pool', '',
+            'FEE EVENT EO BERSIH', '', ''
+          ])
+          worksheet.mergeCells(`A${h2.number}:C${h2.number}`)
+          worksheet.mergeCells(`D${h2.number}:F${h2.number}`)
+          worksheet.mergeCells(`G${h2.number}:H${h2.number}`)
+          worksheet.mergeCells(`I${h2.number}:K${h2.number}`)
+          h2.font = { bold: true, size: 9.5 }
+          h2.eachCell(c => {
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+            c.alignment = { vertical: 'middle', horizontal: 'center' }
+          })
+          applyBorders(h2)
+
+          evSortedMembers.forEach(mName => {
+            const d = eg.memberFeeDetails[mName]
+            const r = worksheet.addRow([
+              mName, '', '',
+              'Lineup / Tampil', '', '',
+              `Pool Rp ${eg.eventMemberPool.toLocaleString('id-ID')} ÷ ${eg.activeMemberCount} member`, '',
+              d.eventFee || eg.eventSharePerMember, '', ''
+            ])
+            worksheet.mergeCells(`A${r.number}:C${r.number}`)
+            worksheet.mergeCells(`D${r.number}:F${r.number}`)
+            worksheet.mergeCells(`G${r.number}:H${r.number}`)
+            worksheet.mergeCells(`I${r.number}:K${r.number}`)
+            r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+            r.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' }
+            r.getCell(7).alignment = { vertical: 'middle', horizontal: 'left' }
+            r.getCell(9).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(9).numFmt = '"Rp" #,##0'
+            r.getCell(9).font = { bold: true, color: { argb: 'FF7928CA' } }
+            applyBorders(r)
+          })
+
+          const sub2 = worksheet.addRow([
+            'TOTAL FEE EVENT DIBAGIKAN KE MEMBER', '', '', '', '', '', '', '',
+            totalEventFeePaid, '', ''
+          ])
+          worksheet.mergeCells(`A${sub2.number}:H${sub2.number}`)
+          worksheet.mergeCells(`I${sub2.number}:K${sub2.number}`)
+          sub2.font = { bold: true }
+          sub2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+          sub2.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+          sub2.getCell(9).numFmt = '"Rp" #,##0'
+          sub2.getCell(9).font = { bold: true, color: { argb: 'FF6D28D9' } }
+          sub2.getCell(9).alignment = { vertical: 'middle', horizontal: 'right' }
+          applyBorders(sub2)
+
+          worksheet.addRow([])
+
+          // --- TABEL 3: REKAP TOTAL GAJI DITERIMA (TAKE HOME PAY) ---
+          const secTitle3 = isMultiEvent
+            ? `3. REKAP TOTAL GAJI DITERIMA - EVENT ${egIdx + 1}: ${eg.nama}`
+            : '3. REKAP TOTAL GAJI DITERIMA (TAKE HOME PAY)'
+          const secRow3 = worksheet.addRow([secTitle3])
+          mergeRow(secRow3.number, 'A', 'K', secTitle3, {
+            font: { bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
+            alignment: { vertical: 'middle', horizontal: 'left' }
+          })
+
+          const recapDesc = 'Perhitungan gabungan: Subtotal Gaji Cheki (Tabel 1) + Fee Event EO (Tabel 2) = Total Gaji Bersih Diterima.'
+          const dRow = worksheet.addRow([recapDesc])
+          mergeRow(dRow.number, 'A', 'K', recapDesc, {
+            font: { size: 9, color: { argb: 'FF6B21A8' } },
+            alignment: { vertical: 'middle', horizontal: 'left' }
+          })
+
+          const h3 = worksheet.addRow([
+            'Nama Member / Talent', '', '',
+            'Total Gaji Cheki (Tabel 1)', '',
+            'Total Gaji Event EO (Tabel 2)', '', '',
+            'TOTAL DITERIMA (TAKE HOME PAY)', '', ''
+          ])
+          worksheet.mergeCells(`A${h3.number}:C${h3.number}`)
+          worksheet.mergeCells(`D${h3.number}:E${h3.number}`)
+          worksheet.mergeCells(`F${h3.number}:H${h3.number}`)
+          worksheet.mergeCells(`I${h3.number}:K${h3.number}`)
+          h3.font = { bold: true, size: 9.5 }
+          h3.eachCell(c => {
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+            c.alignment = { vertical: 'middle', horizontal: 'center' }
+          })
+          applyBorders(h3)
+
+          evSortedMembers.forEach(mName => {
+            const d = eg.memberFeeDetails[mName]
+            const chekiSub = (d.poFee || 0) + (d.otsFee || 0) + (d.groupShare || 0)
+            const eventSub = d.eventFee || 0
+            const r = worksheet.addRow([
+              mName, '', '',
+              chekiSub, '',
+              eventSub, '', '',
+              d.totalTakeHome, '', ''
+            ])
+            worksheet.mergeCells(`A${r.number}:C${r.number}`)
+            worksheet.mergeCells(`D${r.number}:E${r.number}`)
+            worksheet.mergeCells(`F${r.number}:H${r.number}`)
+            worksheet.mergeCells(`I${r.number}:K${r.number}`)
+            r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+            r.getCell(4).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(6).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(9).alignment = { vertical: 'middle', horizontal: 'right' }
+            r.getCell(4).numFmt = '"Rp" #,##0'
+            r.getCell(6).numFmt = '"Rp" #,##0'
+            r.getCell(9).numFmt = '"Rp" #,##0'
+            r.getCell(9).font = { bold: true, color: { argb: 'FF6D28D9' } }
+            applyBorders(r)
+          })
+
+          const grandRow = worksheet.addRow([
+            'GRAND TOTAL PEMBAYARAN GAJI MEMBER', '', '',
+            totalChekiFee, '',
+            totalEventFeePaid, '', '',
+            eg.totalMemberFee, '', ''
+          ])
+          worksheet.mergeCells(`A${grandRow.number}:C${grandRow.number}`)
+          worksheet.mergeCells(`D${grandRow.number}:E${grandRow.number}`)
+          worksheet.mergeCells(`F${grandRow.number}:H${grandRow.number}`)
+          worksheet.mergeCells(`I${grandRow.number}:K${grandRow.number}`)
+          grandRow.font = { bold: true }
+          grandRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+          grandRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+          grandRow.getCell(4).alignment = { vertical: 'middle', horizontal: 'right' }
+          grandRow.getCell(6).alignment = { vertical: 'middle', horizontal: 'right' }
+          grandRow.getCell(9).alignment = { vertical: 'middle', horizontal: 'right' }
+          grandRow.getCell(4).numFmt = '"Rp" #,##0'
+          grandRow.getCell(6).numFmt = '"Rp" #,##0'
+          grandRow.getCell(9).numFmt = '"Rp" #,##0'
+          grandRow.getCell(9).font = { bold: true, color: { argb: 'FF6D28D9' } }
+          applyBorders(grandRow)
+
+        } else {
+          // --- HANYA PENJUALAN CHEKI (TANPA EVENT FEE) ---
+          const sectionTitle = isMultiEvent 
+            ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}` 
+            : `RINCIAN FEE & GAJI MEMBER (PO ${feePoLabel}, OTS ${feeOtsLabel}, Grup dibagi rata ${eg.activeMemberCount} member)`
+
+          const evSecRow = worksheet.addRow([sectionTitle])
+          mergeRow(evSecRow.number, 'A', 'K', sectionTitle, {
+            font: { bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } },
+            alignment: { vertical: 'middle', horizontal: 'left' }
+          })
+
+          const evMemHeaderRow = worksheet.addRow([
+            'Nama Member / Talent', '', '',
+            'PO Qty', `Fee PO (${feePoLabel})`,
+            'OTS Qty', `Fee OTS (${feeOtsLabel})`,
+            'Share Grup & Fee', '',
+            'TOTAL FEE DITERIMA', ''
+          ])
+          worksheet.mergeCells(`A${evMemHeaderRow.number}:C${evMemHeaderRow.number}`)
+          worksheet.mergeCells(`H${evMemHeaderRow.number}:I${evMemHeaderRow.number}`)
+          worksheet.mergeCells(`J${evMemHeaderRow.number}:K${evMemHeaderRow.number}`)
+          evMemHeaderRow.font = { bold: true, size: 9.5 }
+          evMemHeaderRow.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+            cell.alignment = { vertical: 'middle', horizontal: 'center' }
+          })
+          applyBorders(evMemHeaderRow)
+
+          if (evSortedMembers.length === 0) {
+            const emptyRow = worksheet.addRow(['-', '', '', '-', '-', '-', '-', '-', '', '-', ''])
+            worksheet.mergeCells(`A${emptyRow.number}:C${emptyRow.number}`)
+            worksheet.mergeCells(`H${emptyRow.number}:I${emptyRow.number}`)
+            worksheet.mergeCells(`J${emptyRow.number}:K${emptyRow.number}`)
+            applyBorders(emptyRow)
+          } else {
+            evSortedMembers.forEach(mName => {
+              const d = eg.memberFeeDetails[mName]
+              const r = worksheet.addRow([
+                mName, '', '',
+                d.poQty,
+                d.poFee,
+                d.otsQty,
+                d.otsFee,
+                (d.groupShare || 0) + (d.eventFee || 0), '',
+                d.totalTakeHome, ''
+              ])
+              worksheet.mergeCells(`A${r.number}:C${r.number}`)
+              worksheet.mergeCells(`H${r.number}:I${r.number}`)
+              worksheet.mergeCells(`J${r.number}:K${r.number}`)
+
+              r.getCell(5).numFmt = '"Rp" #,##0'
+              r.getCell(7).numFmt = '"Rp" #,##0'
+              r.getCell(8).numFmt = '"Rp" #,##0'
+              r.getCell(10).numFmt = '"Rp" #,##0'
+
+              r.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+              r.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' }
+              r.getCell(5).alignment = { vertical: 'middle', horizontal: 'right' }
+              r.getCell(6).alignment = { vertical: 'middle', horizontal: 'center' }
+              r.getCell(7).alignment = { vertical: 'middle', horizontal: 'right' }
+              r.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' }
+              r.getCell(10).alignment = { vertical: 'middle', horizontal: 'right' }
+              r.getCell(10).font = { bold: true, color: { argb: 'FF7928CA' } }
+              applyBorders(r)
+            })
+
+            const subTotRow = worksheet.addRow([
+              `SUBTOTAL FEE EVENT (${eg.nama})`, '', '',
+              eg.singlePoQty,
+              totalPoFee,
+              eg.singleOtsQty,
+              totalOtsFee,
+              totalGroupShare, '',
+              eg.totalMemberFee, ''
+            ])
+            worksheet.mergeCells(`A${subTotRow.number}:C${subTotRow.number}`)
+            worksheet.mergeCells(`H${subTotRow.number}:I${subTotRow.number}`)
+            worksheet.mergeCells(`J${subTotRow.number}:K${subTotRow.number}`)
+            subTotRow.font = { bold: true }
+            subTotRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } }
+            subTotRow.getCell(5).numFmt = '"Rp" #,##0'
+            subTotRow.getCell(7).numFmt = '"Rp" #,##0'
+            subTotRow.getCell(8).numFmt = '"Rp" #,##0'
+            subTotRow.getCell(10).numFmt = '"Rp" #,##0'
+            subTotRow.getCell(10).font = { bold: true, color: { argb: 'FF6D28D9' } }
+            subTotRow.eachCell((cell, colNumber) => {
+              if (colNumber >= 4) {
+                cell.alignment = { vertical: 'middle', horizontal: [4, 6].includes(colNumber) ? 'center' : 'right' }
+              }
+            })
+            applyBorders(subTotRow)
+          }
         }
 
         worksheet.addRow([])
