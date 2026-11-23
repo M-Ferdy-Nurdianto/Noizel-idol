@@ -58,6 +58,9 @@ export const generateExcel = async ({ scope, value, params, events, api, financi
 
     if (financialConfig) {
       exportParams.include_salary = financialConfig.includeSalary ? 'true' : 'false'
+      exportParams.event_fee_gross = financialConfig.eventFeeGross
+      exportParams.event_staff_cut = financialConfig.eventStaffCut
+      exportParams.event_mgmt_percent = financialConfig.eventMgmtPercent
       exportParams.fee_po = financialConfig.feePoMember
       exportParams.fee_po_mode = financialConfig.feePoMode
       exportParams.fee_ots = financialConfig.feeOtsMember
@@ -70,7 +73,6 @@ export const generateExcel = async ({ scope, value, params, events, api, financi
       exportParams.group_po_mode = financialConfig.groupPoMode
       exportParams.group_ots = financialConfig.groupOtsPool
       exportParams.group_ots_mode = financialConfig.groupOtsMode
-      exportParams.event_fee = financialConfig.eventFeePerMember
     }
 
     if (scope === 'event') {
@@ -938,6 +940,9 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
     // Konfigurasi finansial & pembagian gaji (Default atau Custom dari Admin)
     const finCfg = {
       includeSalary: financialConfig?.includeSalary !== false,
+      eventFeeGross: Number(financialConfig?.eventFeeGross ?? 850000),
+      eventStaffCut: Number(financialConfig?.eventStaffCut ?? 100000),
+      eventMgmtPercent: Number(financialConfig?.eventMgmtPercent ?? 40),
       feePoMember: Number(financialConfig?.feePoMember ?? 10000),
       feePoMode: financialConfig?.feePoMode || 'nominal',
       feeOtsMember: Number(financialConfig?.feeOtsMember ?? 15000),
@@ -949,12 +954,12 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
       groupPoPool: Number(financialConfig?.groupPoPool ?? 15000),
       groupPoMode: financialConfig?.groupPoMode || 'nominal',
       groupOtsPool: Number(financialConfig?.groupOtsPool ?? 20000),
-      groupOtsMode: financialConfig?.groupOtsMode || 'nominal',
-      eventFeePerMember: Number(financialConfig?.eventFeePerMember ?? 0)
+      groupOtsMode: financialConfig?.groupOtsMode || 'nominal'
     }
 
     // Kalkulasi finansial per event dan akumulasi bulanan
     let grandTotalRevenue = 0
+    let grandTotalEventFeeGross = 0
     let grandTotalChekiSold = 0
     let grandTotalModalCheki = 0
     let grandTotalStaffHonor = 0
@@ -968,11 +973,25 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
     distinctEvents.forEach(eg => {
       const paidOrders = eg.orders.filter(o => o.status === 'checked' || o.status === 'completed')
       eg.paidOrders = paidOrders
-      eg.revenue = paidOrders.reduce((sum, o) => sum + (o.total_harga || 0), 0)
+      eg.chekiRevenue = paidOrders.reduce((sum, o) => sum + (o.total_harga || 0), 0)
       eg.otsOrders = eg.orders.filter(o => o.is_ots)
       eg.poOrders = eg.orders.filter(o => !o.is_ots)
 
+      // Event Fee EO (850k nego - staff 100k -> 40% mgmt, sisa 60% member)
+      const evFeeGross = finCfg.includeSalary ? finCfg.eventFeeGross : 0
+      const evStaffCut = finCfg.includeSalary && evFeeGross > 0 ? finCfg.eventStaffCut : 0
+      const evNetFee = Math.max(0, evFeeGross - evStaffCut)
+      const evMgmtCut = Math.round(evNetFee * (finCfg.eventMgmtPercent / 100))
+      const evMemberPool = Math.max(0, evNetFee - evMgmtCut)
+
+      eg.eventFeeGross = evFeeGross
+      eg.eventStaffCut = evStaffCut
+      eg.eventMgmtCut = evMgmtCut
+      eg.eventMemberPool = evMemberPool
+      eg.revenue = eg.chekiRevenue + evFeeGross
+
       grandTotalRevenue += eg.revenue
+      grandTotalEventFeeGross += evFeeGross
       grandTotalOtsOrders += eg.otsOrders.length
       grandTotalPoOrders += eg.poOrders.length
 
@@ -1028,15 +1047,16 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
       eg.chekiSold = totalCheki
       grandTotalChekiSold += totalCheki
 
-      // Modal Cheki (Nominal Rp atau % dari Revenue)
+      // Modal Cheki (15k per lembar)
       const modalCheki = finCfg.modalFilmMode === 'percent'
-        ? Math.round(eg.revenue * (finCfg.modalFilm / 100))
+        ? Math.round(eg.chekiRevenue * (finCfg.modalFilm / 100))
         : Math.round(totalCheki * finCfg.modalFilm)
 
-      // Honor Staff (Nominal Rp atau % dari Revenue)
-      const staffHonor = finCfg.honorStaffMode === 'percent'
-        ? Math.round(eg.revenue * (finCfg.honorStaff / 100))
+      // Cut Staff on duty Cheki (2k per lembar) + Staff Event (100k)
+      const staffCheki = finCfg.honorStaffMode === 'percent'
+        ? Math.round(eg.chekiRevenue * (finCfg.honorStaff / 100))
         : Math.round(totalCheki * finCfg.honorStaff)
+      const staffHonor = staffCheki + evStaffCut
 
       // Group Pool (All Member Pool)
       const groupPoPart = finCfg.groupPoMode === 'percent'
@@ -1050,6 +1070,7 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
       const individualMembers = Object.keys(memberStats).filter(n => !n.toLowerCase().includes('group') && !n.toLowerCase().includes('all member'))
       const activeMemberCount = individualMembers.length || 1
       const groupSharePerMember = groupPool > 0 ? Math.floor(groupPool / activeMemberCount) : 0
+      const eventSharePerMember = evMemberPool > 0 ? Math.floor(evMemberPool / activeMemberCount) : 0
 
       let totalMemberFee = 0
       const memberFeeDetails = {}
@@ -1065,8 +1086,8 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
           : Math.round((stats.otsQty || 0) * finCfg.feeOtsMember)
 
         const groupShare = groupSharePerMember
-        const evFee = Number(finCfg.eventFeePerMember || 0)
-        const totalTakeHome = poFee + otsFee + groupShare + evFee
+        const eventFee = eventSharePerMember
+        const totalTakeHome = poFee + otsFee + groupShare + eventFee
 
         memberFeeDetails[name] = {
           poQty: stats.poQty || 0,
@@ -1074,17 +1095,20 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
           otsQty: stats.otsQty || 0,
           otsFee,
           groupShare,
-          eventFee: evFee,
+          eventFee,
           totalTakeHome
         }
         totalMemberFee += totalTakeHome
       })
 
-      // Laba Bersih Manajemen = Total Omset - Biaya Film - Honor Staff - Total Pembagian Member
-      const mgmtCut = eg.revenue - modalCheki - staffHonor - totalMemberFee
+      // Laba Bersih Manajemen = Cut dari Cheki + 40% dari Net Event Fee
+      const chekiMemberFee = totalMemberFee - (eventSharePerMember * individualMembers.length)
+      const chekiMgmtCut = Math.max(0, eg.chekiRevenue - modalCheki - staffCheki - chekiMemberFee)
+      const mgmtCut = chekiMgmtCut + evMgmtCut
 
       eg.modalCheki = modalCheki
       eg.staffHonor = staffHonor
+      eg.staffCheki = staffCheki
       eg.groupPool = groupPool
       eg.memberFeeDetails = memberFeeDetails
       eg.totalMemberFee = totalMemberFee
@@ -1094,6 +1118,7 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
       eg.groupPoQty = groupPoQty
       eg.groupOtsQty = groupOtsQty
       eg.activeMemberCount = activeMemberCount
+      eg.eventSharePerMember = eventSharePerMember
 
       grandTotalModalCheki += modalCheki
       grandTotalStaffHonor += staffHonor
@@ -1229,7 +1254,7 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
     autoTable(doc, {
       startY: currentY,
       head: [[
-        isMultiEvent ? 'TOTAL OMSET BULANAN' : 'TOTAL OMSET (GROSS)',
+        isMultiEvent ? 'TOTAL OMSET KESELURUHAN' : 'TOTAL OMSET (CHEKI + EVENT)',
         'TOTAL POLAROID',
         'OTS ORDERS',
         'PO ORDERS'
@@ -1254,13 +1279,23 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
       },
       margin: { left: 14, right: 14 }
     })
-    currentY = doc.lastAutoTable.finalY + 6
+    currentY = doc.lastAutoTable.finalY + 2
+
+    if (grandTotalEventFeeGross > 0) {
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(107, 33, 168)
+      doc.text(`* Termasuk Event Fee EO sebesar Rp ${grandTotalEventFeeGross.toLocaleString('id-ID')}`, 14, currentY + 3)
+      currentY += 5
+    } else {
+      currentY += 4
+    }
 
     // 3. KARTU ALOKASI KAS & DIVIDEN (Hanya jika includeSalary diaktifkan)
     if (finCfg.includeSalary) {
       autoTable(doc, {
         startY: currentY,
-        head: [[`MODAL FILM (${modalLabel})`, `HONOR STAFF (${staffLabel})`, 'TOTAL GAJI MEMBER', 'LABA BERSIH MGMT']],
+        head: [[`MODAL FILM (${modalLabel})`, `TOTAL STAFF (${staffLabel})`, 'TOTAL GAJI MEMBER', 'LABA BERSIH MGMT']],
         body: [[
           formatCurrency(grandTotalModalCheki),
           formatCurrency(grandTotalStaffHonor),
@@ -1347,16 +1382,26 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
 
       // 5. RINCIAN PER EVENT
       distinctEvents.forEach((eg, egIdx) => {
+        const hasEventFee = eg.eventSharePerMember > 0
         const sectionTitle = isMultiEvent
           ? `RINCIAN EVENT ${egIdx + 1}: ${eg.fullLabel}`
-          : `RINCIAN GAJI & FEE MEMBER (PO ${poFeeLabel}, OTS ${otsFeeLabel}, Grup dibagi rata ${eg.activeMemberCount} member${finCfg.eventFeePerMember > 0 ? `, Event Fee: Rp ${finCfg.eventFeePerMember.toLocaleString('id-ID')}` : ''})`
+          : `RINCIAN GAJI & FEE MEMBER (PO ${poFeeLabel}, OTS ${otsFeeLabel}, Grup dibagi rata ${eg.activeMemberCount} member)`
 
         addSectionHeader(sectionTitle)
+
+        // Banner info Event Fee jika ada
+        if (eg.eventFeeGross > 0) {
+          doc.setFontSize(7.5)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(107, 33, 168)
+          doc.text(`Skema Event Fee: Rp ${eg.eventFeeGross.toLocaleString('id-ID')} | Potong Staff: Rp ${eg.eventStaffCut.toLocaleString('id-ID')} | Cut Mgmt (${finCfg.eventMgmtPercent}%): Rp ${eg.eventMgmtCut.toLocaleString('id-ID')} | Pool Member (${100 - finCfg.eventMgmtPercent}%): Rp ${eg.eventMemberPool.toLocaleString('id-ID')} (Rp ${eg.eventSharePerMember.toLocaleString('id-ID')}/member)`, 14, currentY + 3)
+          currentY += 6
+        }
 
         if (isMultiEvent) {
           autoTable(doc, {
             startY: currentY,
-            head: [['OMSET EVENT', 'MODAL FILM', 'HONOR STAFF', 'FEE MEMBER', 'PROFIT MGMT']],
+            head: [['TOTAL OMSET', 'MODAL FILM', 'TOTAL STAFF', 'FEE MEMBER', 'PROFIT MGMT']],
             body: [[
               formatCurrency(eg.revenue),
               formatCurrency(eg.modalCheki),
@@ -1373,7 +1418,6 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
           currentY = doc.lastAutoTable.finalY + 4
         }
 
-        const hasEventFee = finCfg.eventFeePerMember > 0
         const evMemRows = Object.keys(eg.memberFeeDetails).sort((a, b) => a.localeCompare(b)).map(name => {
           const d = eg.memberFeeDetails[name]
           const rowData = [
@@ -1399,14 +1443,14 @@ export const generatePDF = async ({ api, scope, value, params, events, financial
             { content: formatCurrency(eg.groupPool), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } }
           ]
           if (hasEventFee) {
-            subtotalRow.push({ content: formatCurrency(eg.activeMemberCount * finCfg.eventFeePerMember), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } })
+            subtotalRow.push({ content: formatCurrency(eg.activeMemberCount * eg.eventSharePerMember), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255] } })
           }
           subtotalRow.push({ content: formatCurrency(eg.totalMemberFee), styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 243, 255], textColor: [109, 40, 217] } })
           evMemRows.push(subtotalRow)
         }
 
         const tableHead = ['Member / Talent', 'PO Qty', `Fee PO (${poFeeLabel})`, 'OTS Qty', `Fee OTS (${otsFeeLabel})`, 'Share Grup']
-        if (hasEventFee) tableHead.push('Event Fee')
+        if (hasEventFee) tableHead.push('Share Event Fee')
         tableHead.push('Total Fee Event')
 
         autoTable(doc, {

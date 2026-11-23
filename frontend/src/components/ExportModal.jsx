@@ -5,19 +5,24 @@ import CustomSelect from '../pages/admin/components/CustomSelect'
 
 const DEFAULT_SALARY_CONFIG = {
   includeSalary: true,
-  feePoMember: 10000,
-  feePoMode: 'nominal', // 'nominal' | 'percent'
-  feeOtsMember: 15000,
+  // 1. Event Fee (Dari EO / Penyelenggara)
+  eventFeeGross: 850000,       // Fee event dari EO (default 850k, bisa nego)
+  eventStaffCut: 100000,       // Potongan transport/honor staff event (100k)
+  eventMgmtPercent: 40,        // Persentase manajemen (40%, sisa 60% untuk member)
+  
+  // 2. Pembagian Cheki (SOP Resmi)
+  feePoMember: 10000,          // Fee PO member (10k)
+  feePoMode: 'nominal',        // 'nominal' | 'percent'
+  feeOtsMember: 15000,         // Fee OTS member (15k)
   feeOtsMode: 'nominal',
-  modalFilm: 15000,
+  modalFilm: 15000,            // Modal film/kertas per lembar (15k)
   modalFilmMode: 'nominal',
-  honorStaff: 2000,
+  honorStaff: 2000,            // Cut staff on duty per lembar (2k)
   honorStaffMode: 'nominal',
-  groupPoPool: 15000,
+  groupPoPool: 15000,          // Pool cheki group PO (15k)
   groupPoMode: 'nominal',
-  groupOtsPool: 20000,
-  groupOtsMode: 'nominal',
-  eventFeePerMember: 0
+  groupOtsPool: 20000,         // Pool cheki group OTS (20k)
+  groupOtsMode: 'nominal'
 }
 
 const STORAGE_KEY = 'noize_salary_config'
@@ -311,274 +316,369 @@ const ExportModal = memo(({ isOpen, onClose, onExport, events = [] }) => {
                     </div>
 
                     {financialConfig.includeSalary && (
-                      <div className="space-y-3 pt-1">
-                        {/* Member Fee (PO & OTS) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Fee PO Member */}
-                          <div className="bg-[#1E1C2E] p-3 rounded-lg border border-white/5">
-                            <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
-                              Fee PO Member
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="0"
-                                value={financialConfig.feePoMember}
-                                onChange={(e) => updateConfig('feePoMember', Number(e.target.value))}
-                                className="w-full bg-[#13121D] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
-                              />
-                              <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('feePoMode', 'nominal')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.feePoMode === 'nominal'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  Rp
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('feePoMode', 'percent')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.feePoMode === 'percent'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  %
-                                </button>
-                              </div>
+                      <div className="space-y-4 pt-1">
+                        {/* A. EVENT FEE & HONOR EO */}
+                        <div className="bg-[#1E1C2E] p-3.5 rounded-xl border border-white/5 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-xs font-bold text-[#9D26FF] uppercase tracking-wider block">
+                                A. Fee Event / Penampilan (Dari EO)
+                              </span>
+                              <span className="text-[10px] text-zinc-400">
+                                Fee tampil grup, dipotong staff, lalu dibagi manajemen & member
+                              </span>
                             </div>
                           </div>
 
-                          {/* Fee OTS Member */}
-                          <div className="bg-[#1E1C2E] p-3 rounded-lg border border-white/5">
-                            <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
-                              Fee OTS Member
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="0"
-                                value={financialConfig.feeOtsMember}
-                                onChange={(e) => updateConfig('feeOtsMember', Number(e.target.value))}
-                                className="w-full bg-[#13121D] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
-                              />
-                              <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('feeOtsMode', 'nominal')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.feeOtsMode === 'nominal'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  Rp
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('feeOtsMode', 'percent')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.feeOtsMode === 'percent'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  %
-                                </button>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            {/* Gross Event Fee */}
+                            <div>
+                              <label className="text-[10px] font-semibold text-zinc-300 block mb-1">
+                                Event Fee dari EO
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 font-bold">Rp</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.eventFeeGross}
+                                  onChange={(e) => updateConfig('eventFeeGross', Number(e.target.value))}
+                                  placeholder="850000"
+                                  className="w-full bg-[#13121D] border border-white/10 rounded-lg pl-8 pr-2 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
                               </div>
+                              <span className="text-[9px] text-zinc-500 mt-0.5 block">Default 850k (bisa nego)</span>
+                            </div>
+
+                            {/* Potongan Staff Event */}
+                            <div>
+                              <label className="text-[10px] font-semibold text-zinc-300 block mb-1">
+                                Potong Staff Event
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 font-bold">Rp</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.eventStaffCut}
+                                  onChange={(e) => updateConfig('eventStaffCut', Number(e.target.value))}
+                                  placeholder="100000"
+                                  className="w-full bg-[#13121D] border border-white/10 rounded-lg pl-8 pr-2 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                              </div>
+                              <span className="text-[9px] text-zinc-500 mt-0.5 block">Potongan flat staff (100k)</span>
+                            </div>
+
+                            {/* Potongan Manajemen */}
+                            <div>
+                              <label className="text-[10px] font-semibold text-zinc-300 block mb-1">
+                                Cut Manajemen
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={financialConfig.eventMgmtPercent}
+                                  onChange={(e) => updateConfig('eventMgmtPercent', Number(e.target.value))}
+                                  placeholder="40"
+                                  className="w-full bg-[#13121D] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 font-bold">%</span>
+                              </div>
+                              <span className="text-[9px] text-zinc-500 mt-0.5 block">Sisa {100 - (financialConfig.eventMgmtPercent || 0)}% gaji member</span>
                             </div>
                           </div>
+
+                          {/* Live preview banner */}
+                          {(() => {
+                            const gross = Number(financialConfig.eventFeeGross || 0)
+                            const staff = Number(financialConfig.eventStaffCut || 0)
+                            const mgmtPct = Number(financialConfig.eventMgmtPercent || 40)
+                            const net = Math.max(0, gross - staff)
+                            const mgmt = Math.round(net * (mgmtPct / 100))
+                            const memberPool = net - mgmt
+                            return (
+                              <div className="p-2.5 rounded-lg bg-[#13121D] border border-white/5 text-[10.5px] leading-relaxed text-zinc-300">
+                                <span className="text-zinc-400">Simulasi: </span>
+                                Fee Rp {gross.toLocaleString('id-ID')} - Staff Rp {staff.toLocaleString('id-ID')} = <span className="font-semibold text-white">Rp {net.toLocaleString('id-ID')}</span>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px]">
+                                  <span className="px-1.5 py-0.5 rounded bg-[#9D26FF]/20 text-[#24C6F5] font-semibold">
+                                    Manajemen ({mgmtPct}%): Rp {mgmt.toLocaleString('id-ID')}
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">
+                                    Gaji Member ({100 - mgmtPct}%): Rp {memberPool.toLocaleString('id-ID')} (dibagi rata)
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          })()}
                         </div>
 
-                        {/* Potongan Operasional (Film & Staff) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Modal Film */}
-                          <div className="bg-[#1E1C2E] p-3 rounded-lg border border-white/5">
-                            <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
-                              Modal Film / Kertas (per lbr)
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="0"
-                                value={financialConfig.modalFilm}
-                                onChange={(e) => updateConfig('modalFilm', Number(e.target.value))}
-                                className="w-full bg-[#13121D] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
-                              />
-                              <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('modalFilmMode', 'nominal')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.modalFilmMode === 'nominal'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  Rp
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('modalFilmMode', 'percent')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.modalFilmMode === 'percent'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  %
-                                </button>
+                        {/* B. PEMBAGIAN CHEKI (SOP RESMI) */}
+                        <div className="bg-[#1E1C2E] p-3.5 rounded-xl border border-white/5 space-y-3">
+                          <div>
+                            <span className="text-xs font-bold text-[#9D26FF] uppercase tracking-wider block">
+                              B. Pembagian Penjualan Cheki / Polaroid
+                            </span>
+                            <span className="text-[10px] text-zinc-400">
+                              SOP resmi pembagian per lembar PO & OTS
+                            </span>
+                          </div>
+
+                          {/* Member Fee (PO & OTS) */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Fee PO Member */}
+                            <div className="bg-[#13121D] p-3 rounded-lg border border-white/5">
+                              <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
+                                Fee Member PO (Single)
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.feePoMember}
+                                  onChange={(e) => updateConfig('feePoMember', Number(e.target.value))}
+                                  className="w-full bg-[#1E1C2E] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                                <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('feePoMode', 'nominal')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.feePoMode === 'nominal'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    Rp
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('feePoMode', 'percent')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.feePoMode === 'percent'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    %
+                                  </button>
+                                </div>
                               </div>
+                              <span className="text-[9px] text-zinc-500 mt-1 block">SOP: 10k per lembar</span>
+                            </div>
+
+                            {/* Fee OTS Member */}
+                            <div className="bg-[#13121D] p-3 rounded-lg border border-white/5">
+                              <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
+                                Fee Member OTS (Single)
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.feeOtsMember}
+                                  onChange={(e) => updateConfig('feeOtsMember', Number(e.target.value))}
+                                  className="w-full bg-[#1E1C2E] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                                <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('feeOtsMode', 'nominal')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.feeOtsMode === 'nominal'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    Rp
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('feeOtsMode', 'percent')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.feeOtsMode === 'percent'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    %
+                                  </button>
+                                </div>
+                              </div>
+                              <span className="text-[9px] text-zinc-500 mt-1 block">SOP: 15k per lembar</span>
                             </div>
                           </div>
 
-                          {/* Honor Staff */}
-                          <div className="bg-[#1E1C2E] p-3 rounded-lg border border-white/5">
-                            <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
-                              Honor Staff / Chekiman (per lbr)
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="0"
-                                value={financialConfig.honorStaff}
-                                onChange={(e) => updateConfig('honorStaff', Number(e.target.value))}
-                                className="w-full bg-[#13121D] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
-                              />
-                              <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('honorStaffMode', 'nominal')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.honorStaffMode === 'nominal'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  Rp
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('honorStaffMode', 'percent')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.honorStaffMode === 'percent'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  %
-                                </button>
+                          {/* Potongan Operasional (Film & Staff) */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Modal Film */}
+                            <div className="bg-[#13121D] p-3 rounded-lg border border-white/5">
+                              <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
+                                Modal Film / Kertas (per lbr)
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.modalFilm}
+                                  onChange={(e) => updateConfig('modalFilm', Number(e.target.value))}
+                                  className="w-full bg-[#1E1C2E] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                                <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('modalFilmMode', 'nominal')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.modalFilmMode === 'nominal'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    Rp
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('modalFilmMode', 'percent')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.modalFilmMode === 'percent'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    %
+                                  </button>
+                                </div>
                               </div>
+                              <span className="text-[9px] text-zinc-500 mt-1 block">SOP: 15k per lembar</span>
+                            </div>
+
+                            {/* Honor Staff */}
+                            <div className="bg-[#13121D] p-3 rounded-lg border border-white/5">
+                              <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
+                                Cut Staff On Duty (per lbr)
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.honorStaff}
+                                  onChange={(e) => updateConfig('honorStaff', Number(e.target.value))}
+                                  className="w-full bg-[#1E1C2E] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                                <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('honorStaffMode', 'nominal')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.honorStaffMode === 'nominal'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    Rp
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('honorStaffMode', 'percent')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.honorStaffMode === 'percent'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    %
+                                  </button>
+                                </div>
+                              </div>
+                              <span className="text-[9px] text-zinc-500 mt-1 block">SOP: 2k per lembar</span>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Pool Cheki Group (PO & OTS) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Pool PO Group */}
-                          <div className="bg-[#1E1C2E] p-3 rounded-lg border border-white/5">
-                            <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
-                              Kas / Pool Cheki Group PO (per lbr)
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="0"
-                                value={financialConfig.groupPoPool}
-                                onChange={(e) => updateConfig('groupPoPool', Number(e.target.value))}
-                                className="w-full bg-[#13121D] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
-                              />
-                              <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('groupPoMode', 'nominal')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.groupPoMode === 'nominal'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  Rp
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('groupPoMode', 'percent')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.groupPoMode === 'percent'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  %
-                                </button>
+                          {/* Pool Cheki Group (PO & OTS) */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Pool PO Group */}
+                            <div className="bg-[#13121D] p-3 rounded-lg border border-white/5">
+                              <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
+                                Pool Member Cheki Group PO (per lbr)
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.groupPoPool}
+                                  onChange={(e) => updateConfig('groupPoPool', Number(e.target.value))}
+                                  className="w-full bg-[#1E1C2E] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                                <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('groupPoMode', 'nominal')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.groupPoMode === 'nominal'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    Rp
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('groupPoMode', 'percent')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.groupPoMode === 'percent'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    %
+                                  </button>
+                                </div>
                               </div>
+                              <span className="text-[9px] text-zinc-500 mt-1 block">SOP: 15k dibagi rata member</span>
                             </div>
-                          </div>
 
-                          {/* Pool OTS Group */}
-                          <div className="bg-[#1E1C2E] p-3 rounded-lg border border-white/5">
-                            <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
-                              Kas / Pool Cheki Group OTS (per lbr)
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="0"
-                                value={financialConfig.groupOtsPool}
-                                onChange={(e) => updateConfig('groupOtsPool', Number(e.target.value))}
-                                className="w-full bg-[#13121D] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
-                              />
-                              <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('groupOtsMode', 'nominal')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.groupOtsMode === 'nominal'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  Rp
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig('groupOtsMode', 'percent')}
-                                  className={`px-2 py-1 text-[10px] font-bold ${
-                                    financialConfig.groupOtsMode === 'percent'
-                                      ? 'bg-[#9D26FF] text-white'
-                                      : 'bg-[#13121D] text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  %
-                                </button>
+                            {/* Pool OTS Group */}
+                            <div className="bg-[#13121D] p-3 rounded-lg border border-white/5">
+                              <label className="text-[11px] font-semibold text-zinc-300 block mb-1.5">
+                                Pool Member Cheki Group OTS (per lbr)
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={financialConfig.groupOtsPool}
+                                  onChange={(e) => updateConfig('groupOtsPool', Number(e.target.value))}
+                                  className="w-full bg-[#1E1C2E] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
+                                />
+                                <div className="flex rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('groupOtsMode', 'nominal')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.groupOtsMode === 'nominal'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    Rp
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig('groupOtsMode', 'percent')}
+                                    className={`px-2 py-1 text-[10px] font-bold ${
+                                      financialConfig.groupOtsMode === 'percent'
+                                        ? 'bg-[#9D26FF] text-white'
+                                        : 'bg-[#1E1C2E] text-zinc-400 hover:text-white'
+                                    }`}
+                                  >
+                                    %
+                                  </button>
+                                </div>
                               </div>
+                              <span className="text-[9px] text-zinc-500 mt-1 block">SOP: 20k dibagi rata all member</span>
                             </div>
-                          </div>
-                        </div>
-
-                        {/* Flat Event Fee per Member */}
-                        <div className="bg-[#1E1C2E] p-3 rounded-lg border border-white/5 flex items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <label className="text-[11px] font-semibold text-zinc-300 block mb-0.5">
-                              Honor Tetap Event / Member (Flat)
-                            </label>
-                            <p className="text-[10px] text-zinc-500">Honor tampil tetap per member per event (jika ada)</p>
-                          </div>
-                          <div className="w-36 shrink-0 relative">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 font-bold">Rp</span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={financialConfig.eventFeePerMember}
-                              onChange={(e) => updateConfig('eventFeePerMember', Number(e.target.value))}
-                              placeholder="0"
-                              className="w-full bg-[#13121D] border border-white/10 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white focus:border-[#9D26FF] focus:outline-none font-mono"
-                            />
                           </div>
                         </div>
 

@@ -491,16 +491,21 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
     const {
       dateFrom, dateTo, status, is_ots, search, event_id, month,
       include_salary,
+      event_fee_gross,
+      event_staff_cut,
+      event_mgmt_percent,
       fee_po, fee_po_mode,
       fee_ots, fee_ots_mode,
       modal_film, modal_film_mode,
       honor_staff, honor_staff_mode,
       group_po, group_po_mode,
-      group_ots, group_ots_mode,
-      event_fee
+      group_ots, group_ots_mode
     } = req.query
 
     const includeSalary = include_salary !== 'false'
+    const eventFeeGross = Number(event_fee_gross ?? 850000)
+    const eventStaffCut = Number(event_staff_cut ?? 100000)
+    const eventMgmtPercent = Number(event_mgmt_percent ?? 40)
     const feePo = Number(fee_po ?? 10000)
     const feePoMode = fee_po_mode === 'percent' ? 'percent' : 'nominal'
     const feeOts = Number(fee_ots ?? 15000)
@@ -513,7 +518,6 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
     const groupPoMode = group_po_mode === 'percent' ? 'percent' : 'nominal'
     const groupOts = Number(group_ots ?? 20000)
     const groupOtsMode = group_ots_mode === 'percent' ? 'percent' : 'nominal'
-    const flatEventFee = Number(event_fee ?? 0)
 
     const calcRate = (nominalOrPct, mode, unitPrice) => {
       if (mode === 'percent') {
@@ -696,9 +700,22 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
     distinctEvents.forEach(eg => {
       const paidOrders = eg.orders.filter(o => o.status === 'checked' || o.status === 'completed')
       eg.paidOrders = paidOrders
-      eg.revenue = paidOrders.reduce((sum, o) => sum + (o.total_harga || 0), 0)
+      eg.chekiRevenue = paidOrders.reduce((sum, o) => sum + (o.total_harga || 0), 0)
       eg.otsOrders = eg.orders.filter(o => o.is_ots)
       eg.poOrders = eg.orders.filter(o => !o.is_ots)
+
+      // Event Fee (dari EO) - SOP: Fee EO dipotong staff (100k), 40% manajemen, sisa 60% dibagi rata ke member
+      const evFeeGross = includeSalary ? eventFeeGross : 0
+      const evStaffCut = includeSalary && evFeeGross > 0 ? eventStaffCut : 0
+      const evNetFee = Math.max(0, evFeeGross - evStaffCut)
+      const evMgmtCut = Math.round(evNetFee * (eventMgmtPercent / 100))
+      const evMemberPool = Math.max(0, evNetFee - evMgmtCut)
+
+      eg.eventFeeGross = evFeeGross
+      eg.eventStaffCut = evStaffCut
+      eg.eventMgmtCut = evMgmtCut
+      eg.eventMemberPool = evMemberPool
+      eg.revenue = eg.chekiRevenue + evFeeGross
 
       grandTotalRevenue += eg.revenue
       grandTotalOtsOrders += eg.otsOrders.length
@@ -755,14 +772,16 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       eg.chekiSold = totalCheki
       grandTotalChekiSold += totalCheki
 
-      const avgPrice = totalCheki > 0 ? (eg.revenue / totalCheki) : 50000
+      const avgPrice = totalCheki > 0 ? (eg.chekiRevenue / totalCheki) : 50000
       const modalCheki = totalCheki * calcRate(modalFilm, modalFilmMode, avgPrice)
-      const staffHonor = totalCheki * calcRate(honorStaff, honorStaffMode, avgPrice)
+      const staffCheki = totalCheki * calcRate(honorStaff, honorStaffMode, avgPrice)
+      const staffHonor = staffCheki + evStaffCut
       const groupPool = (groupPoQty * calcRate(groupPo, groupPoMode, avgPrice)) + (groupOtsQty * calcRate(groupOts, groupOtsMode, avgPrice))
 
       const individualMembers = Object.keys(memberStats).filter(n => !n.toLowerCase().includes('group') && !n.toLowerCase().includes('all member'))
       const activeMemberCount = individualMembers.length || 1
       const groupSharePerMember = groupPool > 0 ? Math.floor(groupPool / activeMemberCount) : 0
+      const eventSharePerMember = evMemberPool > 0 ? Math.floor(evMemberPool / activeMemberCount) : 0
 
       let totalMemberFee = 0
       const memberFeeDetails = {}
@@ -777,8 +796,8 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
         const poFee = poQty * calcRate(feePo, feePoMode, avgPoPrice)
         const otsFee = otsQty * calcRate(feeOts, feeOtsMode, avgOtsPrice)
         const groupShare = groupSharePerMember
-        const flatFee = flatEventFee
-        const totalTakeHome = poFee + otsFee + groupShare + flatFee
+        const eventFee = eventSharePerMember
+        const totalTakeHome = poFee + otsFee + groupShare + eventFee
 
         memberFeeDetails[name] = {
           poQty,
@@ -786,16 +805,19 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
           otsQty,
           otsFee,
           groupShare,
-          flatFee,
+          eventFee,
           totalTakeHome
         }
         totalMemberFee += totalTakeHome
       })
 
-      const mgmtCut = Math.max(0, eg.revenue - modalCheki - staffHonor - totalMemberFee)
+      const chekiMemberFee = totalMemberFee - (eventSharePerMember * individualMembers.length)
+      const chekiMgmtCut = Math.max(0, eg.chekiRevenue - modalCheki - staffCheki - chekiMemberFee)
+      const mgmtCut = chekiMgmtCut + evMgmtCut
 
       eg.modalCheki = modalCheki
       eg.staffHonor = staffHonor
+      eg.staffCheki = staffCheki
       eg.groupPool = groupPool
       eg.memberFeeDetails = memberFeeDetails
       eg.totalMemberFee = totalMemberFee
@@ -805,6 +827,7 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       eg.groupPoQty = groupPoQty
       eg.groupOtsQty = groupOtsQty
       eg.activeMemberCount = activeMemberCount
+      eg.eventSharePerMember = eventSharePerMember
 
       grandTotalModalCheki += modalCheki
       grandTotalStaffHonor += staffHonor
@@ -867,7 +890,7 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
     const summaryLabelRow = worksheet.addRow([])
     const summaryValueRow = worksheet.addRow([])
     const summaryBlocks = [
-      { start: 'A', end: 'C', label: isMultiEvent ? 'TOTAL OMSET BULANAN' : 'TOTAL OMSET (GROSS)', value: formatCurrency(grandTotalRevenue), color: 'FF6D28D9' },
+      { start: 'A', end: 'C', label: isMultiEvent ? 'TOTAL OMSET KESELURUHAN' : 'TOTAL OMSET (CHEKI + EVENT)', value: formatCurrency(grandTotalRevenue), color: 'FF6D28D9' },
       { start: 'D', end: 'E', label: 'TOTAL POLAROID', value: `${grandTotalChekiSold} units`, color: 'FF7C3AED' },
       { start: 'F', end: 'H', label: 'OTS ORDERS', value: `${grandTotalOtsOrders} orders`, color: 'FFD97706' },
       { start: 'I', end: 'K', label: 'PO ORDERS', value: `${grandTotalPoOrders} orders`, color: 'FF0891B2' },
@@ -909,7 +932,7 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
       const feeValueRow = worksheet.addRow([])
       const feeBlocks = [
         { start: 'A', end: 'C', label: `MODAL FILM (${modalFilmMode === 'percent' ? modalFilm + '%' : formatCurrency(modalFilm)}/LBR)`, value: formatCurrency(grandTotalModalCheki), color: 'FF581C87', fill: 'FFF5F3FF' },
-        { start: 'D', end: 'E', label: `HONOR STAFF (${honorStaffMode === 'percent' ? honorStaff + '%' : formatCurrency(honorStaff)}/LBR)`, value: formatCurrency(grandTotalStaffHonor), color: 'FF6D28D9', fill: 'FFF5F3FF' },
+        { start: 'D', end: 'E', label: 'TOTAL STAFF (CHEKI+EVENT)', value: formatCurrency(grandTotalStaffHonor), color: 'FF6D28D9', fill: 'FFF5F3FF' },
         { start: 'F', end: 'H', label: 'TOTAL GAJI/FEE MEMBER', value: formatCurrency(grandTotalMemberFees), color: 'FF7928CA', fill: 'FFF5F3FF' },
         { start: 'I', end: 'K', label: 'LABA BERSIH MANAJEMEN', value: formatCurrency(grandTotalManagementCut), color: 'FF4338CA', fill: 'FFF5F3FF' },
       ]
@@ -1088,7 +1111,7 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
               d.poFee,
               d.otsQty,
               d.otsFee,
-              (d.groupShare || 0) + (d.flatFee || 0), '',
+              (d.groupShare || 0) + (d.eventFee || 0), '',
               d.totalTakeHome, ''
             ])
             worksheet.mergeCells(`A${r.number}:C${r.number}`)
@@ -1117,7 +1140,7 @@ router.get('/export/excel', authMiddleware, async (req, res) => {
             Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.poFee || 0), 0),
             eg.singleOtsQty,
             Object.values(eg.memberFeeDetails).reduce((s, d) => s + (d.otsFee || 0), 0),
-            eg.groupPool + (flatEventFee * eg.activeMemberCount), '',
+            eg.groupPool + (eg.eventMemberPool || 0), '',
             eg.totalMemberFee, ''
           ])
           worksheet.mergeCells(`A${subTotRow.number}:C${subTotRow.number}`)
