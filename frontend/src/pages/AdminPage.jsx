@@ -24,7 +24,6 @@ import MerchBatchModal from './admin/modals/MerchBatchModal'
 import DuplicateMerchModal from './admin/modals/DuplicateMerchModal'
 
 import { generateExcel, generateMerchExcel, generateMerchPDF, generatePDF } from '../lib/exportUtils'
-import { isGuestMode, clearGuestSession } from '../lib/guestMock'
 import { getValidAdminToken, logoutAdminSession, touchAdminSession } from '../lib/authSession'
 import { updateCachedSocialLinks } from '../hooks/useSocialLinks'
 
@@ -49,7 +48,6 @@ import {
 
 const AdminPage = () => {
   const navigate = useNavigate()
-  const isGuest = isGuestMode()
 
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('admin_active_tab')
@@ -1095,33 +1093,6 @@ const AdminPage = () => {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 p-4 md:p-10 md:h-screen md:overflow-y-auto pb-24 md:pb-10 space-y-6">
-        {/* GUEST SANDBOX NOTICE BANNER */}
-        {isGuest && (
-          <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(245,158,11,0.15)] animate-fade-in">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-                <FaShieldAlt className="text-base" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-300">Mode Tamu Aktif</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30">GS123</span>
-                </div>
-                <p className="text-xs text-zinc-300 mt-0.5">
-                  Akun ini berjalan dalam mode simulasi. Semua fitur dapat diuji secara bebas — penambahan/penghapusan member, pembuatan event, OTS, maupun perubahan harga — tanpa memengaruhi data produksi. Data sensitif ditampilkan dalam bentuk tersensor.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/10"
-              title="Reset semua simulasi ke data awal"
-            >
-              <FaSync className="text-[10px]" /> Reset Layar (Refresh)
-            </button>
-          </div>
-        )}
-
         {activeTab === 'orders' && (
           <OrdersTab
             orders={orders}

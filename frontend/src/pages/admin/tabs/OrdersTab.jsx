@@ -202,7 +202,7 @@ const OrdersTab = ({
       <div className="bg-[#13121D]/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl shadow-xl overflow-hidden">
         <div className="flex overflow-x-auto md:overflow-x-visible overflow-y-hidden gap-2 scrollbar-hide py-0.5">
           {[
-            { id: 'all', label: 'All (Reg)', color: 'bg-[#9D26FF] text-white shadow-[0_0_15px_rgba(157,38,255,0.4)]' },
+            { id: 'all', label: 'All', color: 'bg-[#9D26FF] text-white shadow-[0_0_15px_rgba(157,38,255,0.4)]' },
             { id: 'ots', label: 'OTS', color: 'bg-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]' },
             { id: 'po', label: 'PO', color: 'bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]' },
             { id: 'special', label: 'Special', color: 'bg-pink-500 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]' },

@@ -14,7 +14,6 @@ const AdminLogin = () => {
   })
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [logoClickCount, setLogoClickCount] = useState(0)
 
   useEffect(() => {
     document.documentElement.classList.add('dark')
@@ -33,33 +32,6 @@ const AdminLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-
-    // CHECK FOR GUEST PLAYGROUND CREDENTIALS (GS123 / GS321)
-    if (formData.username?.trim() === 'GS123' && formData.password === 'GS321') {
-      try {
-        localStorage.setItem('is_guest_mode', 'true')
-        localStorage.setItem('admin_token', 'demo_guest_token_noize_2026')
-        localStorage.setItem('admin_user', JSON.stringify({
-          id: 'guest-demo-user',
-          username: 'GS123',
-          full_name: 'Guest Tester (Demo)',
-          role: 'guest'
-        }))
-        touchAdminSession()
-
-        await Swal.fire({
-          icon: 'success',
-          title: 'Login Guest Berhasil!',
-          text: 'Selamat datang di Mode Tamu. Semua fitur dapat dicoba dengan aman tanpa mengubah database.',
-          confirmButtonColor: '#9D26FF',
-          timer: 2200
-        })
-        navigate('/admin')
-        return
-      } finally {
-        setLoading(false)
-      }
-    }
 
     try {
       const response = await api.post('/auth/login', formData)
@@ -92,43 +64,6 @@ const AdminLogin = () => {
     }
   }
 
-  const handleQuickGuestLogin = () => {
-    setFormData({ username: 'GS123', password: 'GS321' })
-    localStorage.setItem('is_guest_mode', 'true')
-    localStorage.setItem('admin_token', 'demo_guest_token_noize_2026')
-    localStorage.setItem('admin_user', JSON.stringify({
-      id: 'guest-demo-user',
-      username: 'GS123',
-      full_name: 'Guest Tester (Demo)',
-      role: 'guest'
-    }))
-    touchAdminSession()
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Masuk sebagai Guest (GS123)!',
-      text: 'Mode simulasi interaktif aktif. Data sensitif disensor dan database aman.',
-      confirmButtonColor: '#9D26FF',
-      timer: 1800,
-      showConfirmButton: false
-    })
-    navigate('/admin')
-  }
-
-  const handleLogoClick = () => {
-    const nextCount = logoClickCount + 1
-    if (nextCount >= 3) {
-      setLogoClickCount(0)
-      handleQuickGuestLogin()
-    } else {
-      setLogoClickCount(nextCount)
-      // Reset count after 1.5 seconds if user stops clicking
-      setTimeout(() => {
-        setLogoClickCount(0)
-      }, 1500)
-    }
-  }
-
   return (
     <div className="admin-layout min-h-screen bg-transparent flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Subtle Radial Glows */}
@@ -137,10 +72,8 @@ const AdminLogin = () => {
 
       <div className="relative bg-[#13121D]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.6)] p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          {/* Logo without box/shape background - Clickable 3x for secret guest login */}
           <div 
-            onClick={handleLogoClick}
-            className="w-24 h-24 mx-auto mb-4 flex items-center justify-center cursor-pointer select-none transition-transform active:scale-95 group"
+            className="w-24 h-24 mx-auto mb-4 flex items-center justify-center select-none"
             title="Noize"
           >
             <img 
