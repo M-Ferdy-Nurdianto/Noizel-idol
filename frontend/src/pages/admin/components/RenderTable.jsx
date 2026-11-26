@@ -1,5 +1,5 @@
 import React from 'react'
-import { FaEye, FaTrash, FaImage, FaFileAlt, FaSpinner } from 'react-icons/fa'
+import { FaEye, FaEdit, FaTrash, FaImage, FaFileAlt, FaSpinner } from 'react-icons/fa'
 import CustomSelect from './CustomSelect'
 import Skeleton from '../../../components/Skeleton'
 
@@ -137,50 +137,49 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
       className="bg-[#13121D]/90 border border-white/10 rounded-2xl overflow-hidden shadow-lg"
       style={borderStyle}
     >
-      {/* ── TOP: order number + status badge ── */}
+      {/* ── TOP: nama + badges ── */}
       <div className="px-4 pt-3.5 pb-2.5 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="font-mono text-[11px] font-bold text-zinc-400 truncate">
-              {order.order_number}
-            </span>
-            {isSpecial && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0"
-                style={{ color: themeColor, borderColor: themeColor, background: `${themeColor}15` }}>
-                Special
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-sm font-black text-white leading-snug break-words">
+                {order.nama_lengkap}
               </span>
-            )}
+              {isSpecial && (
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0"
+                  style={{ color: themeColor, borderColor: themeColor, background: `${themeColor}15` }}>
+                  Special
+                </span>
+              )}
+            </div>
+            <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-1">
+              {contactLine && (
+                <span className="text-[11px] text-[#00e5e5] break-all">{contactLine}</span>
+              )}
+              {orderEvents.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-semibold text-zinc-400">
+                    {orderEvents[0].nama || orderEvents[0].name}
+                  </span>
+                  {orderEvents.length > 1 && (
+                    <span
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#9D26FF]/20 text-[#24C6F5] border border-[#9D26FF]/30"
+                      title={orderEvents.map(e => e.nama || e.name).join(', ')}
+                    >
+                      +{orderEvents.length - 1} event
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="shrink-0">
             <StatusBadge status={order.status} />
           </div>
         </div>
 
-        {/* Nama, kontak, event & tag pembayaran */}
+        {/* Tag pembayaran */}
         <div>
-          <div className="text-sm font-black text-white leading-snug break-words">
-            {order.nama_lengkap}
-          </div>
-          <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-1">
-            {contactLine && (
-              <span className="text-[11px] text-[#00e5e5] break-all">{contactLine}</span>
-            )}
-            {orderEvents.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-semibold text-zinc-400">
-                  {orderEvents[0].nama || orderEvents[0].name}
-                </span>
-                {orderEvents.length > 1 && (
-                  <span
-                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#9D26FF]/20 text-[#24C6F5] border border-[#9D26FF]/30"
-                    title={orderEvents.map(e => e.nama || e.name).join(', ')}
-                  >
-                    +{orderEvents.length - 1} event
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
 
           {((!order.is_ots && order.payment_proof_url) || paymentBadge) && (
             <div className="flex items-center gap-1.5 flex-wrap mt-2">
@@ -267,9 +266,9 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
           <button
             onClick={() => onView(order)}
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition-colors border border-white/10"
-            title="Detail Order"
+            title={order.is_ots ? 'Edit Order OTS' : 'Detail Order'}
           >
-            <FaEye className="text-xs" />
+            {order.is_ots ? <FaEdit className="text-xs" /> : <FaEye className="text-xs" />}
           </button>
 
           <button
@@ -344,14 +343,13 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
         <table className="w-full min-w-[1000px] text-left border-collapse">
           <thead className="bg-[#1E1C2E] text-zinc-300 uppercase text-[11px] font-bold tracking-wider border-b border-white/10">
             <tr>
-              <th className="px-4 py-3.5">Order #</th>
               <th className="px-4 py-3.5">Nama</th>
               <th className="px-4 py-3.5">Event</th>
               <th className="px-4 py-3.5">Items</th>
-              <th className="px-4 py-3.5">Bukti Pembayaran</th>
-              <th className="px-4 py-3.5">Total</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Bukti Pembayaran</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Total</th>
               <th className="px-4 py-3.5">Status</th>
-              <th className="px-4 py-3.5">Tanggal</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Tanggal</th>
               <th className="px-4 py-3.5 text-center">Actions</th>
             </tr>
           </thead>
@@ -362,7 +360,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan="9" className="text-center py-12 text-zinc-400 text-sm">
+                <td colSpan="8" className="text-center py-12 text-zinc-400 text-sm">
                   {emptyMessage}
                 </td>
               </tr>
@@ -378,21 +376,20 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                     className="hover:bg-white/[0.04] transition-colors duration-150"
                     style={themeColor ? { borderLeft: `4px solid ${themeColor}` } : {}}
                   >
-                    <td className="px-4 py-3.5 font-mono text-xs font-bold text-white">
-                      {order.order_number}
-                      {isSpecial && (
-                        <div className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: themeColor }}>
-                          Special
-                        </div>
-                      )}
-                      {order.is_merch && (
-                        <div className="text-[9px] font-black uppercase tracking-wider text-[#9D26FF] mt-0.5">
-                          Merch
-                        </div>
-                      )}
-                    </td>
                     <td className="px-4 py-3.5">
-                      <div className="font-bold text-white">{order.nama_lengkap}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-white">{order.nama_lengkap}</span>
+                        {isSpecial && (
+                          <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border" style={{ color: themeColor, borderColor: `${themeColor}50`, backgroundColor: `${themeColor}15` }}>
+                            Special
+                          </span>
+                        )}
+                        {order.is_merch && (
+                          <span className="text-[9px] font-black uppercase tracking-wider text-[#9D26FF] px-1.5 py-0.5 rounded bg-[#9D26FF]/15 border border-[#9D26FF]/30">
+                            Merch
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-[#00e5e5] font-medium mt-0.5">
                         {order.whatsapp && order.whatsapp !== '-' ? `WA: ${order.whatsapp}` : order.instagram && order.instagram !== '-' ? `IG: ${order.instagram}` : ''}
                       </div>
@@ -438,7 +435,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                             href={order.payment_proof_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs text-[#00e5e5] hover:underline bg-[#00e5e5]/10 px-2.5 py-1 rounded-lg border border-[#00e5e5]/20 font-medium transition-colors"
+                            className="inline-flex items-center gap-1.5 text-xs text-[#00e5e5] hover:underline bg-[#00e5e5]/10 px-2.5 py-1 rounded-lg border border-[#00e5e5]/20 font-medium transition-colors whitespace-nowrap"
                           >
                             <FaImage /> Lihat Bukti
                           </a>
@@ -455,7 +452,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 font-bold text-[#9D26FF] text-sm">
+                    <td className="px-4 py-3.5 font-bold text-[#9D26FF] text-sm whitespace-nowrap">
                       Rp {order.total_harga?.toLocaleString('id-ID')}
                     </td>
                     <td className="px-4 py-3.5">
@@ -470,7 +467,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                         ]}
                       />
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-zinc-400 font-medium">
+                    <td className="px-4 py-3.5 text-xs text-zinc-400 font-medium whitespace-nowrap">
                       {new Date(order.created_at).toLocaleDateString('id-ID', {
                         day: '2-digit', month: 'short', year: 'numeric'
                       })}
@@ -480,9 +477,9 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                         <button
                           onClick={() => onView(order)}
                           className="text-zinc-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
-                          title="Detail Order"
+                          title={order.is_ots ? 'Edit Order OTS' : 'Detail Order'}
                         >
-                          <FaEye className="text-base" />
+                          {order.is_ots ? <FaEdit className="text-base" /> : <FaEye className="text-base" />}
                         </button>
                         <button
                           onClick={() => onDelete(order.id)}

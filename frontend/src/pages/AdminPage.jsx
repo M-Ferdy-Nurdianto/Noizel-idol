@@ -1286,6 +1286,7 @@ const AdminPage = () => {
           onClose={() => setShowOrderDetailModal(false)}
           order={selectedOrder}
           events={events}
+          onOrderUpdated={() => fetchOrders(true)}
         />
       )}
 

@@ -1,10 +1,63 @@
-import React from 'react'
-import { FaDownload, FaTimes, FaEye } from 'react-icons/fa'
+import React, { useState, useEffect } from 'react'
+import { FaDownload, FaTimes, FaEye, FaPlus, FaMinus, FaTrash, FaSave, FaMoneyBillWave, FaQrcode } from 'react-icons/fa'
 import { showToast } from '../../../lib/toast'
+import api from '../../../lib/api'
 
-const OrderDetailModal = ({ isOpen = false, order, events = [], onClose }) => {
+const OrderDetailModal = ({ isOpen = false, order, events = [], onClose, onOrderUpdated }) => {
+  const [editName, setEditName] = useState('')
+  const [editPayment, setEditPayment] = useState('Cash')
+  const [editItems, setEditItems] = useState([])
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (order) {
+      setEditName(order.nama_lengkap || '')
+      setEditPayment((order.payment_proof_url === 'QR' || order.payment_proof_url === 'QR Code') ? 'QR' : 'Cash')
+      setEditItems((order.order_items || []).map(item => ({ ...item })))
+    }
+  }, [order])
+
   if (!isOpen || !order) {
     return null
+  }
+
+  const handleUpdateQty = (idx, delta) => {
+    setEditItems(prev => {
+      const next = [...prev]
+      const newQty = (next[idx].quantity || 1) + delta
+      if (newQty <= 0) {
+        return next.filter((_, i) => i !== idx)
+      }
+      next[idx] = { ...next[idx], quantity: newQty }
+      return next
+    })
+  }
+
+  const handleSaveOts = async (e) => {
+    e.preventDefault()
+    if (!editName.trim()) {
+      showToast.error('Nama pembeli tidak boleh kosong')
+      return
+    }
+    if (editItems.length === 0) {
+      showToast.error('Minimal harus ada 1 item pesanan')
+      return
+    }
+    setSaving(true)
+    try {
+      await api.patch(`/orders/${order.id}/ots`, {
+        nama_lengkap: editName.trim(),
+        payment_method: editPayment,
+        items: editItems
+      })
+      showToast.success('Order OTS berhasil diperbarui!')
+      if (onOrderUpdated) onOrderUpdated()
+      onClose()
+    } catch (error) {
+      showToast.error(error.response?.data?.error || 'Gagal memperbarui order OTS')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const generateReceipt = () => {
@@ -215,7 +268,9 @@ const OrderDetailModal = ({ isOpen = false, order, events = [], onClose }) => {
       <div className="bg-[#13121D] border border-white/10 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar text-white">
         <div className="p-5 border-b border-white/10 flex justify-between items-center bg-[#161f33] sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <h3 className="text-base md:text-lg font-bold text-white">Detail Order <span className="text-[#9D26FF] font-mono">{order.order_number}</span></h3>
+            <h3 className="text-base md:text-lg font-bold text-white">
+              {order.is_ots ? 'Edit Order OTS' : 'Detail Order'}
+            </h3>
             <button
               onClick={generateReceipt}
               className="bg-[#9D26FF]/20 hover:bg-[#9D26FF]/30 text-[#9D26FF] border border-[#9D26FF]/30 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition-colors"
@@ -229,6 +284,115 @@ const OrderDetailModal = ({ isOpen = false, order, events = [], onClose }) => {
           </button>
         </div>
 
+        {order.is_ots ? (
+          <form onSubmit={handleSaveOts} className="p-6 space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5">Nama Pembeli</label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#1E1C2E] border border-white/10 text-white text-sm rounded-xl focus:border-[#9D26FF] focus:outline-none"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5">Metode Pembayaran</label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditPayment('Cash')}
+                  className={`py-2.5 px-3 rounded-xl font-bold text-xs border flex items-center justify-center gap-2 transition-all ${
+                    editPayment === 'Cash'
+                      ? 'bg-[#9D26FF] text-white border-[#9D26FF]'
+                      : 'bg-[#1E1C2E] text-zinc-400 border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <FaMoneyBillWave /> Cash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditPayment('QR')}
+                  className={`py-2.5 px-3 rounded-xl font-bold text-xs border flex items-center justify-center gap-2 transition-all ${
+                    editPayment === 'QR'
+                      ? 'bg-[#9D26FF] text-white border-[#9D26FF]'
+                      : 'bg-[#1E1C2E] text-zinc-400 border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <FaQrcode /> QRIS
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-zinc-300 mb-2">Item Pesanan</label>
+              <div className="space-y-2">
+                {editItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-2 bg-[#181625] border border-white/10 p-3 rounded-xl">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-white truncate">{item.item_name}</div>
+                      <div className="text-[11px] text-[#9D26FF] font-mono">
+                        Rp {(Number(item.price) || 0).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateQty(idx, -1)}
+                        className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 flex items-center justify-center"
+                      >
+                        <FaMinus className="text-[9px]" />
+                      </button>
+                      <span className="text-xs font-bold text-white px-2 font-mono">{item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateQty(idx, 1)}
+                        className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 flex items-center justify-center"
+                      >
+                        <FaPlus className="text-[9px]" />
+                      </button>
+                      {editItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setEditItems(prev => prev.filter((_, i) => i !== idx))}
+                          className="ml-1 w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center"
+                          title="Hapus Item"
+                        >
+                          <FaTrash className="text-[10px]" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+              <span className="font-bold text-sm text-zinc-300">Total Harga:</span>
+              <span className="font-black text-2xl text-[#9D26FF]">
+                Rp {editItems.reduce((sum, i) => sum + ((Number(i.price) || 0) * (i.quantity || 1)), 0).toLocaleString('id-ID')}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-bold transition"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#9D26FF] hover:bg-[#8215db] text-white text-xs font-bold transition disabled:opacity-50"
+              >
+                <FaSave /> {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </form>
+        ) : (
         <div className="p-6 space-y-5">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-[#161f33]/60 p-4 rounded-xl border border-white/5">
             <div>
@@ -357,6 +521,7 @@ const OrderDetailModal = ({ isOpen = false, order, events = [], onClose }) => {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   )

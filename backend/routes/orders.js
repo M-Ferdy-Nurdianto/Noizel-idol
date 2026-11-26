@@ -459,6 +459,72 @@ router.post('/ots', authMiddleware, async (req, res) => {
   }
 })
 
+// PATCH: Update OTS order (nama_lengkap, payment_method, items)
+router.patch('/:id/ots', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { nama_lengkap, payment_method, items } = req.body
+
+    const { data: existingOrder, error: fetchErr } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (fetchErr) throw fetchErr
+    if (!existingOrder || !existingOrder.is_ots) {
+      return res.status(404).json({ error: 'Order OTS tidak ditemukan' })
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Minimal harus ada 1 item pesanan' })
+    }
+
+    let total_harga = 0
+    const nextItems = items.map(item => {
+      const price = Math.max(0, Number(item.price) || 0)
+      const quantity = Math.max(1, parseInt(item.quantity, 10) || 1)
+      total_harga += price * quantity
+      return {
+        order_id: id,
+        event_id: item.event_id || existingOrder.event_id,
+        member_id: item.member_id || null,
+        item_name: item.item_name || item.name || 'Cheki',
+        price,
+        quantity
+      }
+    })
+
+    const nextName = (nama_lengkap !== undefined && String(nama_lengkap).trim())
+      ? String(nama_lengkap).trim()
+      : existingOrder.nama_lengkap
+
+    const nextPayment = payment_method || existingOrder.payment_proof_url || 'Cash'
+
+    const { data: updatedOrder, error: updateErr } = await supabase
+      .from('orders')
+      .update({
+        nama_lengkap: nextName,
+        payment_proof_url: nextPayment,
+        total_harga
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateErr) throw updateErr
+
+    await supabase.from('order_items').delete().eq('order_id', id)
+    const { error: insertErr } = await supabase.from('order_items').insert(nextItems)
+    if (insertErr) throw insertErr
+
+    res.json({ success: true, order: { ...updatedOrder, order_items: nextItems } })
+  } catch (error) {
+    console.error('Error updating OTS order:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // PATCH: Update order status
 router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
