@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   FaBookOpen,
   FaCheckCircle,
@@ -168,6 +168,7 @@ const GUIDE_SECTIONS = [
 const GuideTab = ({ setActiveTab }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSection, setSelectedSection] = useState(null)
+  const detailRef = useRef(null)
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -175,6 +176,9 @@ const GuideTab = ({ setActiveTab }) => {
     }
     if (selectedSection) {
       window.addEventListener('keydown', handleEsc)
+      setTimeout(() => {
+        detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 40)
     }
     return () => window.removeEventListener('keydown', handleEsc)
   }, [selectedSection])
@@ -196,9 +200,9 @@ const GuideTab = ({ setActiveTab }) => {
   })
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 sm:space-y-6 pb-8">
       {/* Header */}
-      <div className="bg-[#13121D]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl">
+      <div className="bg-[#13121D]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-6 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-[#9D26FF]/20 border border-[#9D26FF]/40 flex items-center justify-center text-[#9D26FF] shrink-0">
@@ -231,8 +235,8 @@ const GuideTab = ({ setActiveTab }) => {
       </div>
 
       {/* Wajib Dilakukan & Jangan Dilakukan */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#13121D]/90 border border-emerald-500/30 rounded-2xl p-5 space-y-3 shadow-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+        <div className="bg-[#13121D]/90 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 space-y-2.5 sm:space-y-3 shadow-lg">
           <div className="flex items-center gap-2 text-emerald-400 font-bold text-base">
             <FaCheckCircle />
             <span>Wajib Dilakukan</span>
@@ -247,7 +251,7 @@ const GuideTab = ({ setActiveTab }) => {
           </ul>
         </div>
 
-        <div className="bg-[#13121D]/90 border border-rose-500/25 rounded-2xl p-5 space-y-3 shadow-lg">
+        <div className="bg-[#13121D]/90 border border-rose-500/25 rounded-2xl p-4 sm:p-5 space-y-2.5 sm:space-y-3 shadow-lg">
           <div className="flex items-center gap-2 text-rose-400 font-bold text-base">
             <FaTimesCircle />
             <span>Jangan Dilakukan</span>
@@ -265,13 +269,13 @@ const GuideTab = ({ setActiveTab }) => {
 
       {/* Area Konten: Daftar 1 Kolom ATAU Halaman Detail Inline */}
       {selectedSection ? (
-        <div className="bg-[#13121D]/90 border border-[#9D26FF]/40 rounded-2xl p-5 sm:p-6 space-y-6 shadow-xl">
+        <div ref={detailRef} className="bg-[#13121D]/90 border border-[#9D26FF]/40 rounded-2xl p-4 sm:p-6 space-y-5 sm:space-y-6 shadow-xl scroll-mt-4">
           {/* Tombol Kembali + Header Detail */}
           <div className="space-y-4 pb-4 border-b border-white/10">
             <button
               type="button"
               onClick={() => setSelectedSection(null)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-bold text-zinc-200 hover:text-white transition"
+              className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-bold text-zinc-200 hover:text-white transition"
             >
               <FaArrowLeft className="text-xs" />
               <span>Kembali ke Panduan</span>
@@ -347,7 +351,7 @@ const GuideTab = ({ setActiveTab }) => {
               <button
                 type="button"
                 onClick={() => setActiveTab(selectedSection.tabId)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#9D26FF] hover:bg-[#8215db] text-white text-sm font-bold transition shadow-lg shadow-[#9D26FF]/25"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 rounded-xl bg-[#9D26FF] hover:bg-[#8215db] text-white text-sm font-bold transition shadow-lg shadow-[#9D26FF]/25"
               >
                 <span>Buka Menu {selectedSection.title.replace(/^\d+\.\s*/, '')}</span>
                 <FaArrowRight className="text-xs" />
@@ -371,25 +375,27 @@ const GuideTab = ({ setActiveTab }) => {
                 onClick={() => setSelectedSection(section)}
                 className="w-full text-left bg-[#13121D]/90 border border-white/10 hover:border-[#9D26FF]/60 rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 shadow-md transition-all hover:bg-[#181624] group"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-[#9D26FF]/15 border border-[#9D26FF]/35 flex items-center justify-center text-[#9D26FF] shrink-0">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#9D26FF]/15 border border-[#9D26FF]/35 flex items-center justify-center text-[#9D26FF] shrink-0 mt-0.5 sm:mt-0">
                     <Icon className="text-sm" />
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2.5 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 min-w-0">
                     <span className="text-base font-bold text-white group-hover:text-[#9D26FF] transition-colors shrink-0">
                       {section.title}
                     </span>
                     <span className="hidden sm:inline text-zinc-600">—</span>
-                    <span className="text-[15px] text-zinc-300 leading-snug">
+                    <span className="text-sm sm:text-[15px] text-zinc-300 leading-snug">
                       {section.summary}
                     </span>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#9D26FF] shrink-0 self-end sm:self-center group-hover:translate-x-0.5 transition-transform">
-                  <span>Lihat panduan</span>
-                  <FaArrowRight className="text-xs" />
-                </span>
+                <div className="w-full sm:w-auto pt-2 border-t border-white/5 sm:pt-0 sm:border-t-0 flex justify-end shrink-0">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#9D26FF] group-hover:translate-x-0.5 transition-transform">
+                    <span>Lihat panduan</span>
+                    <FaArrowRight className="text-xs" />
+                  </span>
+                </div>
               </button>
             )
           })}
