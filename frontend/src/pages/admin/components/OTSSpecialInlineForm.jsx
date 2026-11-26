@@ -3,7 +3,6 @@ import Swal from 'sweetalert2'
 import { FaTimes, FaPlus, FaMinus, FaUsers, FaChevronUp, FaChevronDown } from 'react-icons/fa'
 import api from '../../../lib/api'
 import { formatMemberName } from '../../../lib/memberUtils'
-import CustomSelect from './CustomSelect'
 
 const OTSSpecialInlineForm = ({
   members = [],
@@ -155,13 +154,20 @@ const OTSSpecialInlineForm = ({
   const totalPrice = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const totalQty = formData.items.reduce((sum, item) => sum + item.quantity, 0)
 
-  const eventOptions = [
-    { value: '', label: '-- Pilih Event Spesial (OTS Aktif) --' },
-    ...validSpecialEvents.map(event => ({
-      value: event.id,
-      label: `${event.nama} - ${event.theme_name || 'Spesial'} (${event.tanggal} ${event.bulan} ${event.tahun})`
-    }))
-  ]
+  const ActiveSpecialEventBadge = () => (
+    <div className="w-full px-3.5 py-2.5 bg-[#1E1C2E]/70 border border-pink-500/30 rounded-xl flex items-center justify-between gap-2">
+      <span className="text-sm font-bold text-white truncate">
+        {selectedEvent
+          ? `${selectedEvent.nama}${selectedEvent.theme_name ? ` (${selectedEvent.theme_name})` : ''} - ${selectedEvent.tanggal} ${selectedEvent.bulan} ${selectedEvent.tahun}`
+          : 'Belum ada event spesial aktif'}
+      </span>
+      {selectedEvent && (
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-pink-500/15 text-pink-300 border border-pink-500/30 shrink-0">
+          Aktif
+        </span>
+      )}
+    </div>
+  )
 
   // Keranjang List
   const CartItemsList = () => (
@@ -336,15 +342,9 @@ const OTSSpecialInlineForm = ({
         <div className="lg:hidden space-y-4">
           <div>
             <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-              Event Spesial <span className="text-pink-400">*</span>
+              Event Spesial
             </label>
-            <CustomSelect
-              options={eventOptions}
-              value={formData.event_id}
-              onChange={(e) => setFormData({ ...formData, event_id: e.target.value, items: [] })}
-              className="w-full"
-              variant="form"
-            />
+            <ActiveSpecialEventBadge />
           </div>
 
           <div>
@@ -398,15 +398,9 @@ const OTSSpecialInlineForm = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-                  Event Spesial <span className="text-pink-400">*</span>
+                  Event Spesial
                 </label>
-                <CustomSelect
-                  options={eventOptions}
-                  value={formData.event_id}
-                  onChange={(e) => setFormData({ ...formData, event_id: e.target.value, items: [] })}
-                  className="w-full"
-                  variant="form"
-                />
+                <ActiveSpecialEventBadge />
               </div>
 
               <div>

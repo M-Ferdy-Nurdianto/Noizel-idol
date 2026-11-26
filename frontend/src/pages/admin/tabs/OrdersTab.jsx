@@ -182,6 +182,7 @@ const OrdersTab = ({
         <OTSOrderInlineForm
           members={members}
           events={events}
+          defaultEventId={eventFilter !== 'all' ? eventFilter : ''}
           onClose={() => {
             setShowInlineOTS(false)
             if (onOtsCartActiveChange) onOtsCartActiveChange(false)

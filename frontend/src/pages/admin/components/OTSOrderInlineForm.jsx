@@ -3,11 +3,11 @@ import Swal from 'sweetalert2'
 import { FaTimes, FaPlus, FaMinus, FaCheckCircle, FaMoneyBillWave, FaQrcode, FaUsers, FaChevronUp, FaChevronDown } from 'react-icons/fa'
 import api from '../../../lib/api'
 import { formatMemberName } from '../../../lib/memberUtils'
-import CustomSelect from './CustomSelect'
 
 const OTSOrderInlineForm = ({
   members = [],
   events = [],
+  defaultEventId = '',
   onClose,
   onSuccess,
   onCartChange,
@@ -24,9 +24,16 @@ const OTSOrderInlineForm = ({
     return eventDate >= today
   })
 
+  const resolveInitialEventId = () => {
+    if (defaultEventId && events.some(e => String(e.id) === String(defaultEventId) && !e.is_special)) {
+      return defaultEventId
+    }
+    return validEvents.length > 0 ? validEvents[0].id : ''
+  }
+
   const [formData, setFormData] = useState({
     nama_lengkap: '',
-    event_id: validEvents.length > 0 ? validEvents[0].id : '',
+    event_id: resolveInitialEventId(),
     payment_method: 'Cash',
     items: []
   })
@@ -34,12 +41,20 @@ const OTSOrderInlineForm = ({
   const [cartExpanded, setCartExpanded] = useState(false)
 
   useEffect(() => {
+    if (defaultEventId && events.some(e => String(e.id) === String(defaultEventId) && !e.is_special)) {
+      setFormData(prev => (String(prev.event_id) === String(defaultEventId) ? prev : { ...prev, event_id: defaultEventId, items: [] }))
+    } else if (!formData.event_id && validEvents.length > 0) {
+      setFormData(prev => ({ ...prev, event_id: validEvents[0].id }))
+    }
+  }, [defaultEventId, events.length])
+
+  useEffect(() => {
     if (onCartChange) {
       onCartChange(formData.items.length)
     }
   }, [formData.items.length, onCartChange])
 
-  const selectedEvent = events.find(e => e.id === formData.event_id)
+  const selectedEvent = events.find(e => String(e.id) === String(formData.event_id))
 
   const activeMembersInLineup = members.filter(member => {
     if (member.hadir === false) return false
@@ -128,10 +143,20 @@ const OTSOrderInlineForm = ({
   const totalPrice = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const totalQty = formData.items.reduce((sum, item) => sum + item.quantity, 0)
 
-  const eventOptions = [
-    { value: '', label: '-- Pilih Event OTS --' },
-    ...validEvents.map(event => ({ value: event.id, label: `${event.nama} (${event.tanggal} ${event.bulan} ${event.tahun})` }))
-  ]
+  const ActiveEventBadge = () => (
+    <div className="w-full px-3.5 py-2.5 bg-[#1E1C2E]/70 border border-[#9D26FF]/30 rounded-xl flex items-center justify-between gap-2">
+      <span className="text-sm font-bold text-white truncate">
+        {selectedEvent
+          ? `${selectedEvent.nama} (${selectedEvent.tanggal} ${selectedEvent.bulan} ${selectedEvent.tahun})`
+          : 'Belum ada event aktif'}
+      </span>
+      {selectedEvent && (
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#9D26FF]/15 text-[#9D26FF] border border-[#9D26FF]/30 shrink-0">
+          Aktif
+        </span>
+      )}
+    </div>
+  )
 
   // Dipakai di 2 tempat (desktop sidebar & mobile expanded sheet) — hindari duplikasi JSX
   const CartItemsList = () => (
@@ -338,9 +363,9 @@ const OTSOrderInlineForm = ({
         <div className="lg:hidden space-y-4">
           <div>
             <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-              Event aktif <span className="text-red-400">*</span>
+              Event aktif
             </label>
-            <CustomSelect options={eventOptions} value={formData.event_id} onChange={(e) => setFormData({ ...formData, event_id: e.target.value })} variant="form" className="w-full" />
+            <ActiveEventBadge />
           </div>
 
           <div>
@@ -389,9 +414,9 @@ const OTSOrderInlineForm = ({
           <div className="lg:col-span-5 space-y-4">
             <div>
               <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-                Event aktif <span className="text-red-400">*</span>
+                Event aktif
               </label>
-              <CustomSelect options={eventOptions} value={formData.event_id} onChange={(e) => setFormData({ ...formData, event_id: e.target.value })} variant="form" className="w-full" />
+              <ActiveEventBadge />
             </div>
 
             <div>
