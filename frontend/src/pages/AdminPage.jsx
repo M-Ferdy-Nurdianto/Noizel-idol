@@ -14,6 +14,7 @@ import MembersTab from './admin/tabs/MembersTab'
 import HomeTab from './admin/tabs/HomeTab'
 import MediaTab from './admin/tabs/MediaTab'
 import AboutUsTab from './admin/tabs/AboutUsTab'
+import GuideTab from './admin/tabs/GuideTab'
 
 import OrderDetailModal from './admin/modals/OrderDetailModal'
 import OTSOrderModal from './admin/modals/OTSOrderModal'
@@ -42,7 +43,8 @@ import {
   FaShieldAlt,
   FaSync,
   FaMusic,
-  FaInfoCircle
+  FaInfoCircle,
+  FaBookOpen
 } from 'react-icons/fa'
 
 const AdminPage = () => {
@@ -1037,6 +1039,7 @@ const AdminPage = () => {
     { id: 'home', label: 'Home', icon: FaHome },
     { id: 'about', label: 'About Us', icon: FaInfoCircle },
     { id: 'settings', label: 'Settings', icon: FaEdit },
+    { id: 'guide', label: 'Panduan', icon: FaBookOpen },
   ]
 
   return (
@@ -1064,6 +1067,7 @@ const AdminPage = () => {
               { id: 'about', label: 'About Us', icon: FaInfoCircle },
               { id: 'recap', label: 'Recap', icon: FaChartBar },
               { id: 'settings', label: 'Settings', icon: FaEdit },
+              { id: 'guide', label: 'Panduan', icon: FaBookOpen },
             ].map(item => (
               <button
                 key={item.id}
@@ -1299,6 +1303,10 @@ const AdminPage = () => {
         {(activeTab === 'about' || activeTab === 'media') && (
           <AboutUsTab />
         )}
+
+        {activeTab === 'guide' && (
+          <GuideTab setActiveTab={setActiveTab} />
+        )}
       </main>
 
       {showOrderDetailModal && selectedOrder && (
@@ -1400,12 +1408,12 @@ const AdminPage = () => {
             <button
               onClick={() => setShowMoreDrawer(prev => !prev)}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[10px] font-bold transition-all ${
-                showMoreDrawer || ['members','settings'].includes(activeTab)
+                showMoreDrawer || ['members','home','about','settings','guide'].includes(activeTab)
                   ? 'text-[#9D26FF]'
                   : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
-              <FaEllipsisH className={`text-lg ${showMoreDrawer || ['members','settings'].includes(activeTab) ? 'text-[#9D26FF]' : ''}`} />
+              <FaEllipsisH className={`text-lg ${showMoreDrawer || ['members','home','about','settings','guide'].includes(activeTab) ? 'text-[#9D26FF]' : ''}`} />
               More
             </button>
           </div>
