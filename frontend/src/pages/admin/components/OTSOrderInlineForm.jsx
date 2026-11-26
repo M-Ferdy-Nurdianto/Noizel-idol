@@ -392,7 +392,7 @@ const OTSOrderInlineForm = ({
                   formData.payment_method === 'Cash' ? 'bg-[#9D26FF] text-white border-[#9D26FF] shadow-[0_0_12px_rgba(7,145,8,0.4)]' : 'bg-[#1E1C2E] text-zinc-400 border-white/10 hover:border-white/20'
                 }`}
               >
-                <FaMoneyBillWave /> Cash / Tunai
+                <FaMoneyBillWave /> Cash
               </button>
               <button
                 type="button"
@@ -443,7 +443,7 @@ const OTSOrderInlineForm = ({
                     formData.payment_method === 'Cash' ? 'bg-[#9D26FF] text-white border-[#9D26FF] shadow-[0_0_12px_rgba(7,145,8,0.4)]' : 'bg-[#1E1C2E] text-zinc-400 border-white/10 hover:border-white/20'
                   }`}
                 >
-                  <FaMoneyBillWave /> Cash / Tunai
+                  <FaMoneyBillWave /> Cash
                 </button>
                 <button
                   type="button"
