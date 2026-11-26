@@ -12,7 +12,6 @@ import {
   FaInfoCircle,
   FaChartBar,
   FaEdit,
-  FaChevronDown,
   FaArrowRight,
   FaShieldAlt,
   FaExclamationTriangle
@@ -189,7 +188,6 @@ const GUIDE_SECTIONS = [
 
 const GuideTab = ({ setActiveTab }) => {
   const [searchQuery, setSearchQuery] = useState('')
-  const [openSectionId, setOpenSectionId] = useState('orders')
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredSections = GUIDE_SECTIONS.filter((sec) => {
@@ -206,14 +204,17 @@ const GuideTab = ({ setActiveTab }) => {
     return haystack.includes(normalizedQuery)
   })
 
-  const toggleSection = (id) => {
-    setOpenSectionId((prev) => (prev === id ? null : id))
+  const scrollToSection = (id) => {
+    const el = document.getElementById(`guide-sec-${id}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
   }
 
   return (
     <div className="space-y-6 pb-8">
       {/* Header Banner */}
-      <div className="bg-[#13121D]/90 backdrop-blur-xl border border-[#9D26FF]/30 rounded-2xl p-5 sm:p-6 shadow-xl">
+      <div className="bg-[#13121D]/90 backdrop-blur-xl border border-[#9D26FF]/30 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-[#9D26FF]/20 border border-[#9D26FF]/40 flex items-center justify-center text-[#9D26FF] shrink-0">
@@ -241,6 +242,29 @@ const GuideTab = ({ setActiveTab }) => {
             />
           </div>
         </div>
+
+        {/* Quick Jump Pills */}
+        {!normalizedQuery && (
+          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mr-1">
+              Lompat ke:
+            </span>
+            {GUIDE_SECTIONS.map((sec) => {
+              const Icon = sec.icon
+              return (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => scrollToSection(sec.id)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#1E1C2E] hover:bg-[#9D26FF]/20 border border-white/10 hover:border-[#9D26FF]/40 text-[11px] font-bold text-zinc-300 hover:text-white transition-all"
+                >
+                  <Icon className="text-[10px] text-[#9D26FF]" />
+                  <span>{sec.title.split(' ')[0]}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Aturan Utama: Boleh vs Tidak Boleh */}
@@ -307,8 +331,8 @@ const GuideTab = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* Daftar Panduan Per Tab */}
-      <div className="space-y-3">
+      {/* Semua Panduan Fitur (Langsung Tampil Semua, 2 Kolom di Desktop) */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">
             Panduan Lengkap Tiap Fitur ({filteredSections.length})
@@ -321,49 +345,46 @@ const GuideTab = ({ setActiveTab }) => {
             <p>Tidak ada panduan yang cocok dengan kata kunci &ldquo;{searchQuery}&rdquo;.</p>
           </div>
         ) : (
-          filteredSections.map((section) => {
-            const Icon = section.icon
-            const isOpen = normalizedQuery ? true : openSectionId === section.id
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-5">
+            {filteredSections.map((section) => {
+              const Icon = section.icon
 
-            return (
-              <div
-                key={section.id}
-                className={`bg-[#13121D]/90 border rounded-2xl overflow-hidden transition-all ${
-                  isOpen ? 'border-[#9D26FF]/40 shadow-lg' : 'border-white/10 hover:border-white/20'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-left"
+              return (
+                <div
+                  key={section.id}
+                  id={`guide-sec-${section.id}`}
+                  className="bg-[#13121D]/90 border border-white/10 hover:border-[#9D26FF]/35 rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-lg transition-colors scroll-mt-6"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                      isOpen
-                        ? 'bg-[#9D26FF]/20 border-[#9D26FF]/40 text-[#9D26FF]'
-                        : 'bg-[#1E1C2E] border-white/10 text-zinc-400'
-                    }`}>
-                      <Icon className="text-base" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-sm sm:text-base font-black text-white truncate">
-                        {section.title}
-                      </h4>
-                      <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5">
-                        {section.summary}
-                      </p>
-                    </div>
-                  </div>
-                  <FaChevronDown
-                    className={`text-zinc-400 text-xs shrink-0 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180 text-[#9D26FF]' : ''
-                    }`}
-                  />
-                </button>
+                  <div className="space-y-4">
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-3 pb-3 border-b border-white/5">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-[#9D26FF]/15 border border-[#9D26FF]/35 flex items-center justify-center text-[#9D26FF] shrink-0">
+                          <Icon className="text-base" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm sm:text-base font-black text-white leading-snug">
+                            {section.title}
+                          </h4>
+                          <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                            {section.summary}
+                          </p>
+                        </div>
+                      </div>
 
-                {isOpen && (
-                  <div className="px-4 sm:px-5 pb-5 pt-2 border-t border-white/5 space-y-4">
-                    {/* Cara Menggunakan */}
+                      {setActiveTab && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab(section.tabId)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1C2E] hover:bg-[#9D26FF] border border-white/10 hover:border-[#9D26FF] text-[11px] font-bold text-zinc-200 hover:text-white transition-all shrink-0"
+                        >
+                          <span>Buka</span>
+                          <FaArrowRight className="text-[9px]" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Cara Pakai */}
                     <div>
                       <h5 className="text-[11px] font-black uppercase tracking-wider text-[#9D26FF] mb-2">
                         Cara Pakai & Mengubah Data
@@ -374,49 +395,36 @@ const GuideTab = ({ setActiveTab }) => {
                         ))}
                       </ol>
                     </div>
+                  </div>
 
-                    {/* Boleh & Tidak Boleh Spesifik Fitur */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 space-y-1.5">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                          <FaCheckCircle /> Boleh / Disarankan
-                        </div>
-                        <ul className="space-y-1 text-[11px] text-zinc-300 leading-relaxed">
-                          {section.dos.map((d, i) => (
-                            <li key={i}>• {d}</li>
-                          ))}
-                        </ul>
+                  {/* Boleh & Tidak Boleh */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 space-y-1">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <FaCheckCircle /> Boleh / Disarankan
                       </div>
-
-                      <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3 space-y-1.5">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                          <FaTimesCircle /> Tidak Boleh / Hindari
-                        </div>
-                        <ul className="space-y-1 text-[11px] text-zinc-300 leading-relaxed">
-                          {section.donts.map((d, i) => (
-                            <li key={i}>• {d}</li>
-                          ))}
-                        </ul>
-                      </div>
+                      <ul className="space-y-1 text-[11px] text-zinc-300 leading-relaxed">
+                        {section.dos.map((d, i) => (
+                          <li key={i}>• {d}</li>
+                        ))}
+                      </ul>
                     </div>
 
-                    {setActiveTab && (
-                      <div className="flex justify-end pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab(section.tabId)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1E1C2E] hover:bg-[#9D26FF] border border-white/10 hover:border-[#9D26FF] text-xs font-bold text-zinc-200 hover:text-white transition-all"
-                        >
-                          <span>Buka Tab {section.title.split(' ')[0]}</span>
-                          <FaArrowRight className="text-[10px]" />
-                        </button>
+                    <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3 space-y-1">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                        <FaTimesCircle /> Tidak Boleh / Hindari
                       </div>
-                    )}
+                      <ul className="space-y-1 text-[11px] text-zinc-300 leading-relaxed">
+                        {section.donts.map((d, i) => (
+                          <li key={i}>• {d}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                )}
-              </div>
-            )
-          })
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>
