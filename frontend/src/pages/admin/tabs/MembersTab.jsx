@@ -1349,7 +1349,7 @@ const MembersTab = ({ members = [], onRefresh }) => {
       {/* Fixed Group Profile / Banner Section */}
       <div className="relative overflow-hidden rounded-2xl border border-[#9D26FF]/40 bg-gradient-to-r from-[#13121D] via-[#1A162B] to-[#13121D] p-5 md:p-6 shadow-2xl">
         <div className="absolute top-0 right-0 w-80 h-80 bg-[#9D26FF]/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-[#24C6F5]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-[#9D26FF]/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
           <div className="flex items-center gap-4">

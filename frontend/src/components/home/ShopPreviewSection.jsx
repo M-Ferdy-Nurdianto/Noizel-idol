@@ -27,7 +27,7 @@ const ProductImage = ({ item, getAssetPath, isSmall = false }) => {
 
   if (!rawUrl || imgError) {
     return (
-      <div className="w-full h-full bg-gradient-to-br from-[#9D26FF]/20 via-[#13121D] to-[#24C6F5]/20 flex flex-col items-center justify-center p-1 text-center select-none">
+      <div className="w-full h-full bg-[#181426] flex flex-col items-center justify-center p-1 text-center select-none">
         {renderCategoryPlaceholderIcon(item, isSmall)}
         {!isSmall && (
           <span className="text-[9px] font-bold text-zinc-400 font-mono tracking-wider">NOIZE</span>

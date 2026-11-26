@@ -4,7 +4,7 @@ export const memberData = {
     'group': {
         color: '#9D26FF',
         name: 'Noize',
-        gradient: 'from-[#9D26FF] to-[#24C6F5]',
+        gradient: 'from-[#9D26FF] to-[#9D26FF]',
     }
 }
 
@@ -30,7 +30,7 @@ export const getMemberData = (name) => {
     return memberData[clean] || {
         color: '#9D26FF',
         name: name || 'Member',
-        gradient: 'from-[#9D26FF] to-[#24C6F5]'
+        gradient: 'from-[#9D26FF] to-[#9D26FF]'
     }
 }
 

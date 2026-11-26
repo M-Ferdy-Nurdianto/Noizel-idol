@@ -274,7 +274,7 @@ const MerchTab = ({
                   <p className="text-xs text-zinc-400 mt-1">Mengompres foto & menyimpan katalog, mohon tunggu...</p>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#9D26FF] via-[#FF1CE3] to-[#24C6F5] animate-pulse w-full" />
+                  <div className="h-full bg-[#9D26FF] animate-pulse w-full" />
                 </div>
               </div>
             </div>

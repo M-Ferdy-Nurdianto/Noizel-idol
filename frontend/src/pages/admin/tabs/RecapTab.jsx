@@ -315,7 +315,7 @@ const RecapTab = ({
         <>
           {/* Cheki Stats */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 bg-gradient-to-br from-[#9D26FF]/15 to-[#13121D]/80 backdrop-blur-xl border border-[#9D26FF]/25 p-6 rounded-2xl flex items-center justify-between">
+            <div className="lg:col-span-2 bg-[#13121D]/90 backdrop-blur-xl border border-[#9D26FF]/25 p-6 rounded-2xl flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-[#24C6F5]/80 mb-1">Total Pemasukan Cheki</div>
                 <div className="text-3xl md:text-4xl font-black text-white tracking-tight">
@@ -372,7 +372,7 @@ const RecapTab = ({
         <>
           {/* Merch Stats */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 bg-gradient-to-br from-[#9D26FF]/15 to-[#13121D]/80 backdrop-blur-xl border border-[#9D26FF]/25 p-6 rounded-2xl flex items-center justify-between">
+            <div className="lg:col-span-2 bg-[#13121D]/90 backdrop-blur-xl border border-[#9D26FF]/25 p-6 rounded-2xl flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-[#24C6F5]/80 mb-1">Total Pemasukan Merch</div>
                 <div className="text-3xl md:text-4xl font-black text-white tracking-tight">

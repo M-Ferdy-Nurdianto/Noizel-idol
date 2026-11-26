@@ -118,8 +118,8 @@ const ChekiCard = ({
         {/* Blok Harga 2 Baris: PO & OTS */}
         <div className={`mt-1.5 mb-3 space-y-1 ${!isAttending ? 'opacity-40' : ''}`}>
           {/* Baris 1: PO */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 font-mono leading-none">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 leading-none w-7">
               PO
             </span>
             <span
@@ -132,8 +132,8 @@ const ChekiCard = ({
 
           {/* Baris 2: OTS (Hanya tampil jika ada di CMS) */}
           {otsPrice && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-[#24C6F5]/15 text-[#24C6F5] border border-[#24C6F5]/30 font-mono leading-none">
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 leading-none w-7">
                 OTS
               </span>
               <span className="text-[13px] sm:text-[14px] font-semibold text-[#24C6F5] leading-none">
@@ -264,31 +264,34 @@ const GroupChekiHorizontalCard = ({
         </div>
 
         <div className="flex flex-col gap-3">
-          {/* Harga PO & OTS dalam 2 chip sejajar */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Chip PO (Ungu) */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#9D26FF]/10 border border-[#9D26FF]/30">
-              <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-[#9D26FF]/20 text-[#9D26FF] font-mono leading-none">
+          {/* Harga PO & OTS (Simple & clean, tanpa badge kotak) */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {/* PO */}
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 leading-none">
                 PO
               </span>
               <span
-                className="text-sm sm:text-base font-black leading-none font-mono"
+                className="text-base sm:text-lg font-bold leading-none tracking-tight"
                 style={{ color: accentColor || '#9D26FF' }}
               >
                 IDR {Number(price).toLocaleString('id-ID')}
               </span>
             </div>
 
-            {/* Chip OTS (Cyan - Hanya jika ada di CMS) */}
+            {/* OTS (Hanya jika ada di CMS) */}
             {otsPrice && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#24C6F5]/10 border border-[#24C6F5]/30">
-                <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-[#24C6F5]/20 text-[#24C6F5] font-mono leading-none">
-                  OTS
-                </span>
-                <span className="text-sm sm:text-base font-black text-[#24C6F5] leading-none font-mono">
-                  IDR {Number(otsPrice).toLocaleString('id-ID')}
-                </span>
-              </div>
+              <>
+                <span className="hidden sm:block w-px h-4 bg-white/10" />
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 leading-none">
+                    OTS
+                  </span>
+                  <span className="text-sm sm:text-base font-semibold text-[#24C6F5] leading-none tracking-tight">
+                    IDR {Number(otsPrice).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </>
             )}
           </div>
 
@@ -322,7 +325,7 @@ const GroupChekiHorizontalCard = ({
                 type="button"
                 aria-label={`Tambah ${name}`}
                 onClick={onAdd}
-                className="w-full h-11 rounded-xl bg-gradient-to-r from-[#9D26FF] to-fuchsia-600 hover:from-[#8A1AD6] hover:to-fuchsia-500 text-white flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider transition-all active:scale-[0.98] cursor-pointer shadow-[0_6px_20px_rgba(157,38,255,0.35)] hover:shadow-[0_8px_25px_rgba(217,70,239,0.45)]"
+                className="w-full h-11 rounded-xl bg-[#9D26FF] hover:bg-[#8A1AD6] text-white flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider transition-all active:scale-[0.98] cursor-pointer shadow-[0_6px_20px_rgba(157,38,255,0.35)] hover:shadow-[0_8px_25px_rgba(157,38,255,0.45)]"
               >
                 <FaPlus className="text-[10px]" />
                 <span>Tambah</span>
