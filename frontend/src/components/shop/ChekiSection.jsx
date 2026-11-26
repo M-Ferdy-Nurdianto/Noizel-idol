@@ -218,8 +218,8 @@ const GroupChekiHorizontalCard = ({
       }`}
       style={inCartQty > 0 && accentColor ? { borderColor: `${accentColor}80` } : {}}
     >
-      {/* Kiri: Foto grup rasio lebar, tinggi sekitar 120px */}
-      <div className="w-full sm:w-56 md:w-64 h-36 sm:h-[120px] rounded-xl overflow-hidden bg-[#0A0F1D] shrink-0 flex items-center justify-center">
+      {/* Kiri: Foto grup rasio lebar, ukuran lebih besar & proporsional */}
+      <div className="w-full sm:w-72 md:w-80 lg:w-96 h-48 sm:h-40 md:h-44 lg:h-[200px] rounded-xl overflow-hidden bg-[#0A0F1D] shrink-0 flex items-center justify-center">
         {hasValidImage ? (
           <img
             src={imageUrl}

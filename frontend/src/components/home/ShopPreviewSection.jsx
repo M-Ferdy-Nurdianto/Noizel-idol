@@ -179,21 +179,13 @@ const ShopPreviewSection = ({
     return `IDR ${num.toLocaleString('id-ID')}`
   }
 
-  // Badge styling helper
+  // Badge styling helper (only SOLD OUT when out of stock)
   const getBadgeStyle = (badge) => {
     const b = String(badge || '').toUpperCase().trim()
-    switch (b) {
-      case 'NEW':
-        return 'bg-[#9D26FF] text-white shadow-[#9D26FF]/40'
-      case 'BEST SELLER':
-        return 'bg-[#24C6F5] text-zinc-950 font-black shadow-[#24C6F5]/40'
-      case 'LIMITED':
-        return 'bg-[#FF1CE3] text-white shadow-[#FF1CE3]/40'
-      case 'SOLD OUT':
-        return 'bg-rose-500 text-white shadow-rose-500/40'
-      default:
-        return 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+    if (b === 'SOLD OUT') {
+      return 'bg-rose-500 text-white shadow-rose-500/40'
     }
+    return 'bg-zinc-800 text-zinc-200 border border-zinc-700'
   }
 
   const rawGrupPrice = configData?.harga_cheki_grup ?? siteConfig?.harga_cheki_grup
@@ -210,7 +202,7 @@ const ShopPreviewSection = ({
   const safeFeaturedIndex = featuredIndex !== -1 ? featuredIndex : 0
   const featuredProduct = products[safeFeaturedIndex]
   const otherProducts = products.filter((_, idx) => idx !== safeFeaturedIndex).slice(0, 3)
-  const featuredBadge = featuredProduct ? (featuredProduct.stok <= 0 ? 'SOLD OUT' : (featuredProduct.badge || null)) : null
+  const featuredBadge = featuredProduct && featuredProduct.stok <= 0 ? 'SOLD OUT' : null
 
   return (
     <section className="py-6 sm:py-8 lg:py-6 bg-pattern-dots text-white relative overflow-hidden border-t border-[#272438]">
@@ -303,7 +295,7 @@ const ShopPreviewSection = ({
                     
                     {/* Polaroid 1 (Belakang Kiri - Mengintip Keluar di Kondisi Diam) */}
                     {memberLeft && (
-                      <div className={`polaroid-card absolute w-18 sm:w-22 md:w-[94px] lg:w-[96px] bg-white p-1 rounded-xs shadow-md transform -rotate-12 -translate-x-4 sm:-translate-x-5 ${shouldReduceMotion ? '' : 'group-hover:-rotate-16 group-hover:-translate-x-7 sm:group-hover:-translate-x-8'} transition-all duration-500 z-10 brightness-90 opacity-90`}>
+                      <div className={`polaroid-card absolute w-[72px] sm:w-[88px] md:w-[94px] lg:w-[96px] bg-white p-1 rounded-xs shadow-md transform -rotate-12 -translate-x-4 sm:-translate-x-5 ${shouldReduceMotion ? '' : 'group-hover:-rotate-16 group-hover:-translate-x-7 sm:group-hover:-translate-x-8'} transition-all duration-500 z-10 brightness-90 opacity-90`}>
                         <div className="w-full aspect-[4/5] bg-zinc-900 overflow-hidden rounded-xs">
                           <img 
                             src={getShopPhoto(memberLeft, 'left')} 
@@ -325,7 +317,7 @@ const ShopPreviewSection = ({
 
                     {/* Polaroid 3 (Belakang Kanan - Mengintip Keluar di Kondisi Diam) */}
                     {memberRight && (
-                      <div className={`polaroid-card absolute w-18 sm:w-22 md:w-[94px] lg:w-[96px] bg-white p-1 rounded-xs shadow-md transform rotate-12 translate-x-4 sm:translate-x-5 ${shouldReduceMotion ? '' : 'group-hover:rotate-16 group-hover:translate-x-7 sm:group-hover:translate-x-8'} transition-all duration-500 z-10 brightness-90 opacity-90`}>
+                      <div className={`polaroid-card absolute w-[72px] sm:w-[88px] md:w-[94px] lg:w-[96px] bg-white p-1 rounded-xs shadow-md transform rotate-12 translate-x-4 sm:translate-x-5 ${shouldReduceMotion ? '' : 'group-hover:rotate-16 group-hover:translate-x-7 sm:group-hover:translate-x-8'} transition-all duration-500 z-10 brightness-90 opacity-90`}>
                         <div className="w-full aspect-[4/5] bg-zinc-900 overflow-hidden rounded-xs">
                           <img 
                             src={getShopPhoto(memberRight, 'right')} 
@@ -507,7 +499,7 @@ const ShopPreviewSection = ({
                   {otherProducts.length > 0 && (
                     <div className="flex flex-col justify-between gap-2 w-full sm:w-[45%] h-full">
                       {otherProducts.map((item, idx) => {
-                        const itemBadge = item.stok <= 0 ? 'SOLD OUT' : (item.badge || null)
+                        const itemBadge = item.stok <= 0 ? 'SOLD OUT' : null
                         return (
                           <div 
                             key={item.id || idx}
