@@ -136,69 +136,78 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
       className="bg-[#13121D]/90 border border-white/10 rounded-2xl overflow-hidden shadow-lg"
       style={borderStyle}
     >
-      {/* ── TOP: order number + nama + badges (OTS/Payment/Status/Bukti) ── */}
-      <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs font-bold text-zinc-400">
+      {/* ── TOP: order number + status badge ── */}
+      <div className="px-4 pt-3.5 pb-2.5 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-mono text-[11px] font-bold text-zinc-400 truncate">
               {order.order_number}
             </span>
             {isSpecial && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border"
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0"
                 style={{ color: themeColor, borderColor: themeColor, background: `${themeColor}15` }}>
                 Special
               </span>
             )}
           </div>
-          <div className="text-sm font-black text-white mt-0.5 truncate">
-            {order.nama_lengkap}
+          <div className="shrink-0">
+            <StatusBadge status={order.status} />
           </div>
-          {contactLine && (
-            <div className="text-[11px] text-[#00e5e5] mt-0.5">{contactLine}</div>
-          )}
-          {orderEvents.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap mt-1">
-              <span className="text-[11px] font-semibold text-zinc-300">
-                {orderEvents[0].nama || orderEvents[0].name}
-              </span>
-              {orderEvents.length > 1 && (
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-[#9D26FF]/20 text-[#24C6F5] border border-[#9D26FF]/30"
-                  title={orderEvents.map(e => e.nama || e.name).join(', ')}
-                >
-                  +{orderEvents.length - 1} event
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Grouped tags: payment method / proof + status badge */}
-        <div className="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
-          {order.payment_method && (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
-              order.payment_method === 'qris'
-                ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-            }`}>
-              {order.payment_method === 'qris' ? 'QRIS' : 'Transfer'}
-            </span>
+        {/* Nama, kontak, event & tag pembayaran */}
+        <div>
+          <div className="text-sm font-black text-white leading-snug break-words">
+            {order.nama_lengkap}
+          </div>
+          <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-1">
+            {contactLine && (
+              <span className="text-[11px] text-[#00e5e5] break-all">{contactLine}</span>
+            )}
+            {orderEvents.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-semibold text-zinc-400">
+                  {orderEvents[0].nama || orderEvents[0].name}
+                </span>
+                {orderEvents.length > 1 && (
+                  <span
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#9D26FF]/20 text-[#24C6F5] border border-[#9D26FF]/30"
+                    title={orderEvents.map(e => e.nama || e.name).join(', ')}
+                  >
+                    +{orderEvents.length - 1} event
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {(order.payment_method || (!order.is_ots && order.payment_proof_url) || paymentBadge) && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+              {order.payment_method && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
+                  order.payment_method === 'qris'
+                    ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                    : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                }`}>
+                  {order.payment_method === 'qris' ? 'QRIS' : 'Transfer'}
+                </span>
+              )}
+              {!order.is_ots && order.payment_proof_url ? (
+                <a
+                  href={order.payment_proof_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-[#00e5e5] bg-[#00e5e5]/10 border border-[#00e5e5]/20 px-2 py-0.5 rounded-lg font-bold transition hover:bg-[#00e5e5]/20"
+                >
+                  <FaImage className="text-[9px]" /> Bukti
+                </a>
+              ) : paymentBadge ? (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${paymentBadge.cls}`}>
+                  {paymentBadge.label}
+                </span>
+              ) : null}
+            </div>
           )}
-          {!order.is_ots && order.payment_proof_url ? (
-            <a
-              href={order.payment_proof_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] text-[#00e5e5] bg-[#00e5e5]/10 border border-[#00e5e5]/20 px-2 py-0.5 rounded-lg font-bold transition hover:bg-[#00e5e5]/20"
-            >
-              <FaImage className="text-[9px]" /> Bukti
-            </a>
-          ) : paymentBadge ? (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${paymentBadge.cls}`}>
-              {paymentBadge.label}
-            </span>
-          ) : null}
-          <StatusBadge status={order.status} />
         </div>
       </div>
 
@@ -300,7 +309,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
             {title}
           </h3>
           <span className="text-[11px] md:text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10 shrink-0">
-            {loading && data.length === 0 ? '...' : `${data.length} items`}
+            {loading ? '...' : `${data.length} items`}
           </span>
         </div>
         {action && (
@@ -312,7 +321,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
 
       {/* ── MOBILE: Card List (< md) ── */}
       <div className="md:hidden">
-        {loading && data.length === 0 ? (
+        {loading ? (
           <div className="p-3 space-y-3">
             {[1, 2, 3].map((k) => (
               <CardSkeleton key={k} />
@@ -323,7 +332,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
             {emptyMessage}
           </div>
         ) : (
-          <div className={`p-3 space-y-3 transition-opacity duration-200 ${loading ? 'opacity-70' : 'opacity-100'}`}>
+          <div className="p-3 space-y-3">
             {data.map((order) => (
               <OrderCard
                 key={order.id}
@@ -354,8 +363,8 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
               <th className="px-4 py-3.5 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className={`divide-y divide-white/5 text-sm text-zinc-200 transition-opacity duration-200 ${loading ? 'opacity-70' : 'opacity-100'}`}>
-            {loading && data.length === 0 ? (
+          <tbody className="divide-y divide-white/5 text-sm text-zinc-200">
+            {loading ? (
               [1, 2, 3, 4].map((k) => (
                 <TableSkeletonRow key={k} />
               ))

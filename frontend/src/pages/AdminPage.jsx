@@ -184,10 +184,14 @@ const AdminPage = () => {
     }
   }, [])
 
+  const lastSearchRef = useRef(searchQuery)
+
   useEffect(() => {
     localStorage.setItem('admin_active_tab', activeTab)
+    const onlySearchChanged = lastSearchRef.current !== searchQuery
+    lastSearchRef.current = searchQuery
     if (activeTab === 'orders') {
-      fetchOrders(orders.length > 0)
+      fetchOrders(onlySearchChanged && orders.length > 0)
     }
   }, [statusFilter, otsFilter, eventFilter, dateFilter, dateFrom, dateTo, searchQuery, activeTab, orderSubTab])
 

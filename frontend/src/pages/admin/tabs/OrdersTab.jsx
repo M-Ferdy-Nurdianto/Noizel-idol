@@ -228,9 +228,9 @@ const OrdersTab = ({
       {orderSubTab !== 'merch' && (
         <>
           {/* Status Legend */}
-          <div className="bg-[#13121D]/80 border border-white/10 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-start md:items-center text-xs text-zinc-300 backdrop-blur-md">
+          <div className="bg-[#13121D]/80 border border-white/10 p-3.5 sm:p-4 rounded-2xl flex flex-col md:flex-row gap-2.5 md:gap-4 items-start md:items-center text-xs text-zinc-300 backdrop-blur-md">
             <span className="font-bold uppercase tracking-wider text-[#24C6F5]">Panduan Status:</span>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500/50"></span>
                 <span><strong className="text-amber-300">Unchecked:</strong> Order Baru</span>
@@ -247,7 +247,7 @@ const OrdersTab = ({
           </div>
 
           {/* Filters & Actions */}
-          <div className="bg-[#13121D]/80 backdrop-blur-xl p-5 rounded-2xl border border-white/10 shadow-xl space-y-4">
+          <div className="bg-[#13121D]/80 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl border border-white/10 shadow-xl space-y-3.5 sm:space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
               <input
                 type="text"
@@ -299,7 +299,7 @@ const OrdersTab = ({
             </div>
 
             {dateFilter === 'custom' && (
-              <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <input
                   type="date"
                   value={dateFrom}
@@ -475,7 +475,7 @@ const OrdersTab = ({
                     setMerchBatchFilter(e.target.value)
                     onFetchMerchOrders(e.target.value)
                   }}
-                  className="min-w-[200px]"
+                  className="w-full sm:w-auto sm:min-w-[200px]"
                 />
               </div>
               <div className="text-[11px] text-zinc-400">
