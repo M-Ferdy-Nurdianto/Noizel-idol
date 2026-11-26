@@ -37,7 +37,9 @@ const GUIDE_SECTIONS = [
     title: '1. Orders',
     icon: FaShoppingCart,
     summary: 'Mengelola daftar pesanan Cheki dan Merch serta mencatat Order OTS.',
-    steps: [
+    listHeading: 'Langkah',
+    isOrdered: true,
+    items: [
       'Pilih filter tab di atas: All, OTS, PO, Special, atau Merch untuk melihat jenis pesanan tertentu.',
       'Pada pesanan PO, klik "Lihat Bukti" untuk membuka foto bukti transfer atau QRIS yang diunggah pembeli.',
       'Ubah status pesanan di dropdown: Unchecked (baru masuk) → Checked (lunas) → Completed (selesai).',
@@ -53,7 +55,9 @@ const GUIDE_SECTIONS = [
     title: '2. Events',
     icon: FaCalendar,
     summary: 'Mengatur jadwal acara yang tampil di beranda dan halaman Shop.',
-    steps: [
+    listHeading: 'Langkah',
+    isOrdered: true,
+    items: [
       'Klik "+ Tambah Event", lalu isi nama event, tanggal, lokasi, jam event, dan jam cheki.',
       'Di bagian Lineup, centang member yang ikut. Member yang tidak dicentang otomatis tampil "Not Attending" di Shop dan tidak muncul di form OTS.',
       'Untuk acara khusus, aktifkan "Special Event", isi nama tema, warna, serta atur apakah OTS dan harga khusus diaktifkan.',
@@ -68,10 +72,12 @@ const GUIDE_SECTIONS = [
     title: '3. Members',
     icon: FaUsers,
     summary: 'Mengatur data grup NOIZE dan profil tiap member di website.',
-    steps: [
-      'Pada kartu NOIZE (grup) di atas, atur foto grup, foto Shop, tagline, Instagram resmi, dan saklar aktif/nonaktif Group Cheki.',
-      'Klik "Edit" pada member atau "+ Tambah Member" untuk mengisi nama panggung, tanggal lahir, hobi, jikoshoukai, Instagram, dan angka urutan.',
-      'Unggah Foto Profil (rasio 3:4) untuk halaman About Us / daftar member dan Foto Shop (rasio 4:5) untuk kartu Cheki.'
+    listHeading: 'Bagian yang Bisa Diatur',
+    isOrdered: false,
+    items: [
+      'Kartu NOIZE (grup): mengatur foto grup, foto Shop, tagline, Instagram resmi, dan saklar aktif/nonaktif Group Cheki.',
+      'Profil Member: tambah atau edit nama panggung, tanggal lahir, hobi, jikoshoukai, Instagram, dan angka urutan tampil.',
+      'Foto Member: unggah Foto Profil (rasio 3:4) untuk halaman About Us dan Foto Shop (rasio 4:5) untuk kartu Cheki.'
     ],
     tips: 'Angka urutan menentukan posisi member dari kiri ke kanan di halaman About Us dan Shop. Matikan saklar Group Cheki jika sesi grup sedang tidak dibuka.',
     caution: 'Menonaktifkan status hadir member lebih aman daripada menghapus member, karena data pesanan lama tetap utuh.'
@@ -82,7 +88,9 @@ const GUIDE_SECTIONS = [
     title: '4. Merchandise',
     icon: FaBox,
     summary: 'Mengatur batch PO, katalog produk, stok, dan foto merch di Shop.',
-    steps: [
+    listHeading: 'Langkah',
+    isOrdered: true,
+    items: [
       'Buat atau aktifkan Batch Merch terlebih dahulu untuk mengelompokkan produk berdasarkan periode rilis.',
       'Klik "+ Tambah Merch", lalu isi nama produk, harga, stok, kategori, deskripsi, dan pilihan varian atau ukuran.',
       'Unggah foto utama produk dan foto size chart (jika ada).',
@@ -97,10 +105,12 @@ const GUIDE_SECTIONS = [
     title: '5. Home',
     icon: FaHome,
     summary: 'Mengatur foto Hero, teks perkenalan, dan daftar FAQ di beranda.',
-    steps: [
-      'Buka bagian Hero untuk mengganti foto desktop dan mobile tiap member, lalu atur posisi atau zoom lewat Live Preview.',
-      'Edit bagian "Who Is Noize" untuk mengubah teks perkenalan grup di halaman utama.',
-      'Buka bagian FAQ untuk menambah, mengubah, atau menghapus daftar tanya-jawab di halaman depan.'
+    listHeading: 'Bagian yang Bisa Diatur',
+    isOrdered: false,
+    items: [
+      'Hero: ganti foto desktop dan mobile tiap member, lalu atur posisi atau zoom lewat Live Preview sebelum klik Simpan.',
+      'Who Is Noize: ubah teks perkenalan grup yang tampil di halaman utama.',
+      'FAQ: tambah, ubah, atau hapus daftar tanya-jawab di halaman depan.'
     ],
     tips: 'Gunakan tombol switch Desktop dan Mobile di Live Preview agar posisi wajah member tidak terpotong di layar HP maupun komputer.',
     caution: 'Perubahan posisi foto di Hero belum tersimpan ke website sebelum tombol Simpan diklik.'
@@ -111,10 +121,11 @@ const GUIDE_SECTIONS = [
     title: '6. About Us',
     icon: FaInfoCircle,
     summary: 'Mengatur cerita grup, galeri foto, tautan media, dan kontak.',
-    steps: [
-      'Ubah teks cerita, judul bagian, dan info kontak manager yang tampil di halaman About Us.',
-      'Pada bagian Media, tambahkan atau perbarui foto carousel, link video YouTube, dan link lagu/album Spotify.',
-      'Klik "Simpan Perubahan" di masing-masing bagian setelah selesai.'
+    listHeading: 'Bagian yang Bisa Diatur',
+    isOrdered: false,
+    items: [
+      'Cerita & Kontak: ubah teks cerita, judul bagian, dan info kontak manager yang tampil di halaman About Us.',
+      'Media: tambahkan atau perbarui foto carousel galeri, link video YouTube, dan link lagu/album Spotify.'
     ],
     tips: 'Gunakan link YouTube dan Spotify yang bersifat publik agar pemutar media bisa langsung tampil di halaman About Us.',
     caution: 'Link video atau lagu yang berstatus private tidak akan muncul di website.'
@@ -125,10 +136,12 @@ const GUIDE_SECTIONS = [
     title: '7. Recap',
     icon: FaChartBar,
     summary: 'Melihat grafik dan ringkasan pemasukan Cheki serta Merch.',
-    steps: [
-      'Pilih mode tampilan Cheki atau Merch di bagian atas halaman.',
-      'Gunakan filter Event untuk melihat total pemasukan dan jumlah tiket terjual pada acara tertentu.',
-      'Lihat grafik perbandingan PO vs OTS untuk memantau jumlah penjualan per member.'
+    listHeading: 'Yang Bisa Dilihat',
+    isOrdered: false,
+    items: [
+      'Mode Cheki / Merch: beralih antara ringkasan penjualan tiket Cheki dan penjualan Merchandise.',
+      'Filter Event: melihat total pemasukan dan jumlah tiket terjual untuk acara tertentu.',
+      'Grafik PO vs OTS: membandingkan jumlah penjualan masing-masing member.'
     ],
     tips: 'Angka di Recap dihitung otomatis dari data pesanan di tab Orders, sehingga akan langsung ikut berubah saat ada order baru atau status diperbarui.',
     caution: 'Pesanan yang masih berstatus Unchecked atau dibatalkan tetap memengaruhi tampilan jika belum dibersihkan.'
@@ -139,11 +152,13 @@ const GUIDE_SECTIONS = [
     title: '8. Settings',
     icon: FaEdit,
     summary: 'Mengatur harga default, QRIS, rekening, sosmed, dan Maintenance.',
-    steps: [
-      'Atur harga default untuk PO Member, PO Grup, OTS Member, dan OTS Grup.',
-      'Unggah gambar QRIS dan isi nomor rekening bank yang ditampilkan saat pembeli melakukan Checkout.',
-      'Perbarui tautan Instagram, TikTok, YouTube, X, Discord, dan WhatsApp yang muncul di footer dan halaman kontak.',
-      'Aktifkan saklar Maintenance saat website sedang diperbaiki (pengunjung melihat halaman perbaikan, admin yang login tetap bisa membuka website).'
+    listHeading: 'Pengaturan yang Tersedia',
+    isOrdered: false,
+    items: [
+      'Harga Default: atur tarif dasar PO Member, PO Grup, OTS Member, dan OTS Grup.',
+      'Pembayaran Checkout: unggah gambar QRIS dan isi nomor rekening bank untuk halaman Checkout.',
+      'Sosial Media & WhatsApp: perbarui tautan Instagram, TikTok, YouTube, X, Discord, dan Channel WhatsApp di footer/kontak.',
+      'Mode Maintenance: aktifkan saat website sedang diperbaiki (pengunjung melihat layar perbaikan, admin yang login tetap bisa membuka website).'
     ],
     tips: 'Harga default ini otomatis dipakai untuk semua event reguler, kecuali event spesial yang memakai harga khusus sendiri.',
     caution: 'Pastikan gambar QRIS terbaca jelas saat diuji di halaman Checkout, dan matikan Maintenance jika perbaikan sudah selesai.'
@@ -170,7 +185,8 @@ const GuideTab = ({ setActiveTab }) => {
     const haystack = [
       sec.title,
       sec.summary,
-      ...sec.steps,
+      sec.listHeading,
+      ...sec.items,
       sec.tips,
       sec.caution
     ]
@@ -276,19 +292,30 @@ const GuideTab = ({ setActiveTab }) => {
             </div>
           </div>
 
-          {/* Bagian 1: Langkah (Angka dalam Lingkaran) */}
+          {/* Bagian 1: Langkah (untuk alur berurutan) ATAU Daftar Fitur/Bagian (untuk pengaturan non-urutan) */}
           <div className="space-y-3">
-            <h4 className="text-base font-bold text-white">Langkah</h4>
-            <ol className="space-y-3">
-              {selectedSection.steps.map((step, i) => (
-                <li key={i} className="flex items-start gap-3 text-[15px] text-zinc-200 leading-relaxed">
-                  <span className="w-7 h-7 rounded-full bg-[#9D26FF]/20 border border-[#9D26FF]/40 text-[#9D26FF] font-bold text-sm flex items-center justify-center shrink-0 mt-0.5">
-                    {i + 1}
-                  </span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
+            <h4 className="text-base font-bold text-white">{selectedSection.listHeading}</h4>
+            {selectedSection.isOrdered ? (
+              <ol className="space-y-3">
+                {selectedSection.items.map((step, i) => (
+                  <li key={i} className="flex items-start gap-3 text-[15px] text-zinc-200 leading-relaxed">
+                    <span className="w-7 h-7 rounded-full bg-[#9D26FF]/20 border border-[#9D26FF]/40 text-[#9D26FF] font-bold text-sm flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <ul className="space-y-2.5">
+                {selectedSection.items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[15px] text-zinc-200 leading-relaxed">
+                    <span className="text-[#9D26FF] font-bold mt-0.5">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Bagian 2 & 3: Tips (Hijau) & Hati-hati (Merah Lembut) */}
