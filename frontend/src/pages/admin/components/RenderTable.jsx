@@ -229,9 +229,8 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
           }
         </div>
         {order.catatan && (
-          <div className="mt-2 flex items-start gap-1.5 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5">
-            <FaFileAlt className="text-zinc-400 text-[10px] mt-0.5 shrink-0" />
-            <span className="text-[11px] text-zinc-300 leading-snug">{order.catatan}</span>
+          <div className="mt-2 bg-amber-500/10 border border-amber-500/25 rounded-lg px-2.5 py-1.5">
+            <span className="text-[11px] text-amber-300 leading-snug">{order.catatan}</span>
           </div>
         )}
       </div>
@@ -422,8 +421,8 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                           </div>
                         )) || <span className="text-zinc-500 text-xs">No items</span>}
                         {order.catatan && (
-                          <div className="mt-1 text-[10px] text-zinc-300 bg-white/5 border border-white/10 rounded-md px-2 py-0.5 max-w-[250px] truncate flex items-center gap-1" title={order.catatan}>
-                            <FaFileAlt className="flex-shrink-0 text-zinc-400" /> {order.catatan}
+                          <div className="mt-1 text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-md px-2 py-0.5 max-w-[250px] truncate" title={order.catatan}>
+                            {order.catatan}
                           </div>
                         )}
                       </div>
