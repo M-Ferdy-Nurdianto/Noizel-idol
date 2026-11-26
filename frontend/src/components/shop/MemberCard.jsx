@@ -12,7 +12,7 @@ const MemberCard = ({
   hargaMember = 25000,
   inLineup = true
 }) => {
-  const accentColor = member?.color || getMemberColor(member?.nama_panggung) || '#9D26FF'
+  const accentColor = '#9D26FF'
   const { triggerFly } = useFlyToCart()
 
   const handleClick = (e) => {

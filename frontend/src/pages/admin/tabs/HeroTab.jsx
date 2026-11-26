@@ -937,55 +937,6 @@ const HeroTab = ({ embedded = false }) => {
                     </div>
                   </div>
                 </div>
-
-                {/* Color Overlay Selector + Custom Color Picker */}
-                <div className="bg-[#13121D] border border-white/10 p-4 rounded-xl space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-zinc-300 flex items-center gap-2">
-                      <FaPalette className="text-[#9D26FF]" /> Warna Tint / Overlay Foto Member
-                    </label>
-                    <span className="text-[10px] font-mono text-[#9D26FF] font-bold">
-                      {currentMember.color}
-                    </span>
-                  </div>
-
-                  {/* Preset Colors */}
-                  <div className="flex flex-wrap gap-2">
-                    {COLOR_PRESETS.map((preset) => (
-                      <button
-                        key={preset.value}
-                        onClick={() => updateSelectedMember('color', preset.value)}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-2 border transition-all ${
-                          currentMember.color === preset.value
-                            ? 'border-white text-white shadow-md ring-2 ring-[#9D26FF]'
-                            : 'border-white/10 text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        <span className={`w-3 h-3 rounded-full ${preset.value}`} />
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Custom Color Input Picker */}
-                  <div className="pt-2 border-t border-white/10 flex items-center gap-3">
-                    <span className="text-xs font-bold text-zinc-400">Pilih Warna Custom:</span>
-                    <input
-                      type="color"
-                      value={currentMember.color?.startsWith('#') ? currentMember.color : '#5A8F5A'}
-                      onChange={(e) => updateSelectedMember('color', e.target.value)}
-                      className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
-                      title="Pilih Warna Kustom Sendiri"
-                    />
-                    <input
-                      type="text"
-                      value={currentMember.color || ''}
-                      onChange={(e) => updateSelectedMember('color', e.target.value)}
-                      className="w-32 bg-[#09090B] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-[#9D26FF]"
-                      placeholder="#5A8F5A"
-                    />
-                  </div>
-                </div>
               </div>
             )}
           </div>

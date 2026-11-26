@@ -27,6 +27,7 @@ import api from '../../../lib/api'
 import { getAssetPath } from '../../../lib/pathUtils'
 import { showToast } from '../../../lib/toast'
 import { parseInstagram, extractInstagramHandle, formatInstagramDisplay } from '../../../lib/instagramUtils'
+import { useSocialLinks } from '../../../hooks/useSocialLinks'
 
 const PRESET_COLORS = [
   { name: 'Amber Gold', hex: '#FBBF24' },
@@ -122,10 +123,18 @@ const MembersTab = ({ members = [], onRefresh }) => {
   const silhouetteInputRef = useRef(null)
   const galleryInputRefs = [useRef(null), useRef(null), useRef(null)]
 
+  const { getLink } = useSocialLinks()
+
   // Open Full Page Editor
   const handleOpenEditor = (member = null) => {
     if (member) {
       setEditingMember(member)
+      const settingsIg = member.member_id === 'group' ? getLink('instagram') : ''
+      const settingsIgHandle = settingsIg ? extractInstagramHandle(settingsIg) : ''
+      const resolvedIg = formatInstagramDisplay(member.instagram) !== '-'
+        ? formatInstagramDisplay(member.instagram)
+        : (member.instagram || (settingsIgHandle ? `@${settingsIgHandle}` : (settingsIg || '')))
+
       setFormData({
         member_id: member.member_id || '',
         nama_panggung: member.nama_panggung || '',
@@ -133,7 +142,7 @@ const MembersTab = ({ members = [], onRefresh }) => {
         jikoshoukai: member.jikoshoukai || '',
         tanggal_lahir: member.tanggal_lahir || '',
         hobi: member.hobi || '',
-        instagram: formatInstagramDisplay(member.instagram) !== '-' ? formatInstagramDisplay(member.instagram) : (member.instagram || ''),
+        instagram: resolvedIg,
         color: member.color || '#9D26FF',
         order_index: member.order_index !== undefined ? member.order_index : 0,
         hadir: member.hadir !== undefined ? member.hadir : true,
@@ -300,10 +309,11 @@ const MembersTab = ({ members = [], onRefresh }) => {
 
       const payload = {
         ...formData,
+        color: '#9D26FF',
         image_url: finalAvatarUrl,
         shop_image_url: finalShopImageUrl,
-        silhouette_image_url: isGroup ? null : finalSilhouetteUrl,
-        is_secret: isGroup ? false : Boolean(formData.is_secret),
+        silhouette_image_url: null,
+        is_secret: false,
         gallery: []
       }
 
@@ -745,55 +755,6 @@ const MembersTab = ({ members = [], onRefresh }) => {
                 </div>
               </div>
             </div>
-
-            {/* Color Branding Card */}
-            <div className="bg-[#13121D] border border-white/10 rounded-2xl p-5 shadow-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-                  <FaPalette style={{ color: formData.color }} />
-                  Warna Identitas {isGroup ? 'Grup' : 'Member'} (HEX)
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={formData.color || '#9D26FF'}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0 p-0"
-                  />
-                  <input
-                    type="text"
-                    value={formData.color || ''}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    placeholder="#9D26FF"
-                    className="w-24 px-2.5 py-1 bg-[#1E1C2E] border border-white/10 rounded-lg text-xs font-mono font-bold text-center focus:outline-none focus:border-[#9D26FF]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <span className="text-[11px] text-zinc-400 block mb-2">Preset Palet Warna Idol:</span>
-                <div className="grid grid-cols-6 gap-2">
-                  {PRESET_COLORS.map((preset) => (
-                    <button
-                      key={preset.hex}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, color: preset.hex })}
-                      title={preset.name}
-                      className={`h-9 rounded-xl flex items-center justify-center transition-all ${
-                        formData.color?.toLowerCase() === preset.hex.toLowerCase()
-                          ? 'ring-2 ring-white scale-105 shadow-lg'
-                          : 'opacity-80 hover:opacity-100 hover:scale-102'
-                      }`}
-                      style={{ backgroundColor: preset.hex }}
-                    >
-                      {formData.color?.toLowerCase() === preset.hex.toLowerCase() && (
-                        <FaCheck className="text-white text-xs drop-shadow" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Group dedicated settings VS Individual Member details */}
@@ -869,11 +830,8 @@ const MembersTab = ({ members = [], onRefresh }) => {
                     <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
                       Nama Panggung / Entitas
                     </label>
-                    <div className="flex items-center justify-between px-4 py-2.5 bg-[#1E1C2E] border border-white/10 text-white rounded-xl text-xs font-bold">
+                    <div className="flex items-center px-4 py-2.5 bg-[#1E1C2E]/70 border border-white/10 text-zinc-200 rounded-xl text-xs font-bold select-none">
                       <span>NOIZE</span>
-                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#9D26FF]/20 text-[#9D26FF] border border-[#9D26FF]/30">
-                        Fixed (group)
-                      </span>
                     </div>
                   </div>
 
@@ -1102,120 +1060,6 @@ const MembersTab = ({ members = [], onRefresh }) => {
                     </span>
                   </div>
                 </div>
-              </div>
-
-              {/* Secret / Teaser Member Card */}
-              <div className="bg-[#13121D] border border-purple-500/30 rounded-2xl p-5 shadow-lg space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                  <div className="flex items-center gap-2">
-                    <FaUserSecret className="text-purple-400 text-base" />
-                    <div>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                        Mode Secret / Siluet Teaser Member
-                      </h3>
-                      <p className="text-[10px] text-zinc-400">
-                        Untuk member baru atau trainee yang identitas aslinya masih dirahasiakan
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, is_secret: !formData.is_secret })}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        formData.is_secret ? 'bg-purple-600' : 'bg-zinc-700'
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          formData.is_secret ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                    <span className={`text-xs font-bold ${formData.is_secret ? 'text-purple-300' : 'text-zinc-500'}`}>
-                      {formData.is_secret ? 'SECRET AKTIF' : 'NORMAL'}
-                    </span>
-                  </div>
-                </div>
-
-                {formData.is_secret && (
-                  <div className="space-y-3 pt-1">
-                    <div className="p-3 bg-purple-950/30 border border-purple-500/20 rounded-xl text-[11px] text-purple-200 flex items-start gap-2">
-                      <FaEyeSlash className="text-purple-400 shrink-0 mt-0.5 text-xs" />
-                      <span>
-                        Ketika aktif: Foto di <strong>Hero Beranda, Toko Shop Cheki, dan Daftar Member</strong> akan otomatis digantikan oleh <strong>Foto Siluet</strong> ini. Nama panggung di panggung Hero akan otomatis disamarkan sebagai <strong>"???"</strong> hingga Anda menonaktifkan status secret ini.
-                      </span>
-                    </div>
-
-                    <div 
-                      onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget('silhouette'); }}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (!e.currentTarget.contains(e.relatedTarget)) setDragTarget(null); }}
-                      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const f = e.dataTransfer?.files?.[0]; if (f) handleSilhouetteChange(f); }}
-                      className={`flex flex-col sm:flex-row items-center gap-5 p-4 rounded-xl border-2 transition-all ${
-                        dragTarget === 'silhouette'
-                          ? 'border-purple-500 bg-purple-500/20 shadow-[0_0_25px_rgba(168,85,247,0.4)] ring-2 ring-purple-500'
-                          : 'bg-[#1E1C2E] border-purple-500/20'
-                      }`}
-                    >
-                      <div
-                        className={`relative w-28 h-36 md:w-32 md:h-40 rounded-2xl overflow-hidden border-2 border-dashed border-purple-400 cursor-pointer group shadow-xl shrink-0 bg-black/60 transition-all ${
-                          dragTarget === 'silhouette' ? 'scale-105 border-purple-300' : ''
-                        }`}
-                        onClick={() => silhouetteInputRef.current?.click()}
-                      >
-                        {silhouettePreview ? (
-                          <img
-                            src={silhouettePreview}
-                            alt="Preview Siluet"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            onError={(e) => {
-                              e.target.onerror = null
-                              e.target.src = getAssetPath('/images/members/placeholder.svg')
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 p-2 text-center">
-                            <FaQuestion className="text-3xl mb-1 text-purple-400/80" />
-                            <span className="text-[10px] text-purple-300 font-bold">Pilih Foto Siluet</span>
-                          </div>
-                        )}
-                        <div className={`absolute inset-0 bg-black/70 flex items-center justify-center transition-opacity text-white text-xs font-semibold gap-1.5 text-center p-2 ${
-                          dragTarget === 'silhouette' ? 'opacity-100 bg-purple-600/70' : 'opacity-0 group-hover:opacity-100'
-                        }`}>
-                          <FaUpload className={dragTarget === 'silhouette' ? 'animate-bounce' : ''} /> {dragTarget === 'silhouette' ? 'Lepaskan Siluet' : 'Ganti Siluet'}
-                        </div>
-                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-purple-900/90 text-purple-200 rounded text-[9px] font-bold">
-                          SILUET
-                        </span>
-                      </div>
-
-                      <div className="space-y-2 text-center sm:text-left">
-                        <p className="text-xs text-zinc-300 font-medium">
-                          {silhouetteFile ? silhouetteFile.name : (formData.silhouette_image_url ? 'Foto siluet tersimpan' : 'Belum ada foto siluet khusus')}
-                        </p>
-                        <p className="text-[11px] text-zinc-400">
-                          Unggah foto siluet gelap. Drag & drop atau klik untuk upload. Otomatis crop 3:4.
-                        </p>
-                        <input
-                          type="file"
-                          ref={silhouetteInputRef}
-                          onChange={handleSilhouetteChange}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => silhouetteInputRef.current?.click()}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-xs font-bold text-purple-200 transition"
-                        >
-                          <FaUpload /> Unggah Foto Siluet
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* CMS Sorting & Status Settings */}

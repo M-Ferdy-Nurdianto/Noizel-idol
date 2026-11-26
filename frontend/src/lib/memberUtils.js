@@ -14,15 +14,8 @@ export const sanitizeName = (name) => {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
-// Get member color by member object or name
-export const getMemberColor = (memberOrName) => {
-    if (typeof memberOrName === 'object' && memberOrName !== null) {
-        if (memberOrName.color) return memberOrName.color
-        return getMemberColor(memberOrName.nama_panggung)
-    }
-    const clean = sanitizeName(memberOrName)
-    return memberData[clean]?.color || '#9D26FF'
-}
+// Get member color (follows website purple theme)
+export const getMemberColor = () => '#9D26FF'
 
 // Get member data by name
 export const getMemberData = (name) => {

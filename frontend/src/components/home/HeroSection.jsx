@@ -118,8 +118,7 @@ const HeroSection = ({
                   }}
                 />
                 <div 
-                  className={`absolute inset-0 ${getOverlayClass(member.color)} mix-blend-multiply opacity-30 group-hover:opacity-0 transition-opacity duration-700`}
-                  style={getOverlayStyle(member.color)}
+                  className="absolute inset-0 bg-[#9D26FF] mix-blend-multiply opacity-30 group-hover:opacity-0 transition-opacity duration-700"
                 />
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"></div>
               </div>
@@ -226,10 +225,9 @@ const HeroSection = ({
                   }}
                 />
                 <div 
-                  className={`absolute inset-0 ${getOverlayClass(member.color)} transition-opacity duration-500 z-10 ${
+                  className={`absolute inset-0 bg-[#9D26FF] transition-opacity duration-500 z-10 ${
                     activeMemberId === member.id ? 'opacity-0' : 'opacity-40 mix-blend-multiply group-hover:opacity-0'
                   }`}
-                  style={getOverlayStyle(member.color)}
                 />
                 <div className="absolute inset-y-0 left-0 flex items-center z-20 px-4 pointer-events-none">
                   <span className={`text-xs font-black tracking-widest uppercase transition-all duration-300 ${

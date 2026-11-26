@@ -1326,7 +1326,7 @@ const SettingsTab = ({
                 <span className="w-7 h-7 rounded-lg bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center text-[#25D366]">
                   <FaWhatsapp size={14} />
                 </span>
-                <span>Channel WhatsApp (Opsional untuk Nota & Pengumuman)</span>
+                <span>Channel WhatsApp</span>
               </label>
               {socialLinks?.whatsapp_channel && (
                 <a 
