@@ -182,17 +182,8 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
             )}
           </div>
 
-          {((!order.is_ots && order.payment_method) || (!order.is_ots && order.payment_proof_url) || paymentBadge) && (
+          {((!order.is_ots && order.payment_proof_url) || paymentBadge) && (
             <div className="flex items-center gap-1.5 flex-wrap mt-2">
-              {!order.is_ots && order.payment_method && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
-                  order.payment_method === 'qris'
-                    ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                    : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-                }`}>
-                  {order.payment_method === 'qris' ? 'QRIS' : 'Transfer'}
-                </span>
-              )}
               {!order.is_ots && order.payment_proof_url ? (
                 <a
                   href={order.payment_proof_url}
@@ -442,15 +433,6 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex flex-col gap-1 items-start">
-                        {!order.is_ots && order.payment_method && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                            order.payment_method === 'qris'
-                              ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                              : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-                          }`}>
-                            {order.payment_method === 'qris' ? 'QRIS' : 'Transfer'}
-                          </span>
-                        )}
                         {!order.is_ots && order.payment_proof_url ? (
                           <a
                             href={order.payment_proof_url}
