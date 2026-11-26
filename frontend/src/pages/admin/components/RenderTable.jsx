@@ -125,8 +125,9 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
     ? `IG: ${order.instagram}`
     : null
 
+  const isOtsQr = order.payment_proof_url === 'QR' || order.payment_proof_url === 'QR Code'
   const paymentBadge = order.is_ots
-    ? (order.payment_proof_url === 'QR'
+    ? (isOtsQr
         ? { label: 'OTS · QRIS', cls: 'bg-purple-500/10 text-purple-300 border-purple-500/20' }
         : { label: 'OTS · Cash', cls: 'bg-[#24C6F5]/10 text-[#24C6F5] border-[#24C6F5]/20' })
     : null
@@ -181,9 +182,9 @@ const OrderCard = ({ order, onView, onDelete, onStatusChange, events = [] }) => 
             )}
           </div>
 
-          {(order.payment_method || (!order.is_ots && order.payment_proof_url) || paymentBadge) && (
+          {((!order.is_ots && order.payment_method) || (!order.is_ots && order.payment_proof_url) || paymentBadge) && (
             <div className="flex items-center gap-1.5 flex-wrap mt-2">
-              {order.payment_method && (
+              {!order.is_ots && order.payment_method && (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
                   order.payment_method === 'qris'
                     ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
@@ -441,7 +442,7 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex flex-col gap-1 items-start">
-                        {order.payment_method && (
+                        {!order.is_ots && order.payment_method && (
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                             order.payment_method === 'qris'
                               ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
@@ -461,11 +462,11 @@ const RenderTable = ({ data, title, icon, emptyMessage, action, loading, onView,
                           </a>
                         ) : order.is_ots ? (
                           <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
-                            order.payment_proof_url === 'QR'
+                            (order.payment_proof_url === 'QR' || order.payment_proof_url === 'QR Code')
                               ? 'bg-purple-500/10 text-purple-300 border-purple-500/20'
                               : 'bg-[#24C6F5]/10 text-[#24C6F5] border-[#24C6F5]/20'
                           }`}>
-                            OTS: {order.payment_proof_url?.startsWith('data:') || order.payment_proof_url?.startsWith('http') ? 'Cash' : (order.payment_proof_url || 'Cash')}
+                            {(order.payment_proof_url === 'QR' || order.payment_proof_url === 'QR Code') ? 'OTS · QRIS' : 'OTS · Cash'}
                           </span>
                         ) : (
                           <span className="text-zinc-500 text-xs">-</span>
