@@ -211,15 +211,15 @@ const GroupChekiHorizontalCard = ({
 
   return (
     <div
-      className={`w-full group bg-[#13121D] rounded-2xl border p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 ${
+      className={`w-full group relative bg-[#13121D] rounded-2xl border overflow-hidden grid grid-cols-1 md:grid-cols-2 items-stretch hover:-translate-y-0.5 transition-all duration-300 ${
         inCartQty > 0
-          ? 'border-[#9D26FF]/60 shadow-[0_0_20px_rgba(157,38,255,0.15)]'
-          : 'border-[#272438] hover:border-[#9D26FF]/40'
+          ? 'border-[#9D26FF]/70 shadow-[0_0_32px_rgba(157,38,255,0.28)]'
+          : 'border-[#9D26FF]/35 hover:border-[#9D26FF]/70 shadow-[0_0_28px_rgba(157,38,255,0.14)] hover:shadow-[0_0_38px_rgba(157,38,255,0.24)]'
       }`}
-      style={inCartQty > 0 && accentColor ? { borderColor: `${accentColor}80` } : {}}
+      style={inCartQty > 0 && accentColor ? { borderColor: `${accentColor}99` } : {}}
     >
-      {/* Kiri: Foto grup rasio lebar, ukuran lebih besar & proporsional */}
-      <div className="w-full sm:w-72 md:w-80 lg:w-96 h-48 sm:h-40 md:h-44 lg:h-[200px] rounded-xl overflow-hidden bg-[#0A0F1D] shrink-0 flex items-center justify-center">
+      {/* Kiri: Foto grup penuh kolom dengan gradient fade ke arah konten */}
+      <div className="relative w-full h-56 sm:h-64 md:h-auto md:min-h-[240px] bg-[#0A0F1D] overflow-hidden">
         {hasValidImage ? (
           <img
             src={imageUrl}
@@ -231,7 +231,7 @@ const GroupChekiHorizontalCard = ({
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-[#070B14]">
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black shadow-inner"
+              className="w-14 h-14 rounded-full flex items-center justify-center text-base font-black shadow-inner"
               style={{
                 backgroundColor: `${accentColor}25`,
                 border: `2px solid ${accentColor}60`,
@@ -242,83 +242,93 @@ const GroupChekiHorizontalCard = ({
             </div>
           </div>
         )}
+        {/* Gradient fade ke arah konten (bawah di mobile, kanan di desktop) */}
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#13121D] via-[#13121D]/20 to-transparent md:hidden" />
+        <div className="hidden md:block absolute inset-0 pointer-events-none bg-gradient-to-l from-[#13121D] via-[#13121D]/25 to-transparent" />
       </div>
 
-      {/* Tengah: "GROUP CHEKI" info */}
-      <div className="flex-1 min-w-0 text-center sm:text-left">
-        <h4 className="text-base sm:text-lg font-black text-white uppercase tracking-tight truncate group-hover:text-[#9D26FF] transition-colors">
-          {name}
-        </h4>
-        <p className="text-xs text-zinc-400 mt-1 hidden sm:block">
-          Tiket Cheki bersama seluruh member NOIZE dalam satu sesi
-        </p>
-      </div>
+      {/* Kanan: Konten (Badge + Judul + Deskripsi + Chip Harga + Tombol Full Width) */}
+      <div className="relative z-10 p-4 sm:p-6 flex flex-col justify-between gap-4">
+        <div>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border border-[#9D26FF]/40 bg-[#9D26FF]/15 text-[#9D26FF] mb-2">
+            ALL MEMBER
+          </span>
 
-      {/* Kanan: Harga (PO & OTS) + Tombol Tambah / Stepper */}
-      <div className="flex flex-col sm:items-end gap-2.5 w-full sm:w-auto shrink-0">
-        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:gap-1">
-          {/* Baris 1: PO */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 font-mono leading-none">
-              PO
-            </span>
-            <span
-              className="text-[15px] sm:text-[16px] font-bold leading-none"
-              style={{ color: accentColor }}
-            >
-              IDR {Number(price).toLocaleString('id-ID')}
-            </span>
-          </div>
+          <h4 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-tight group-hover:text-[#9D26FF] transition-colors">
+            {name}
+          </h4>
 
-          {/* Baris 2: OTS (Hanya jika ada di CMS) */}
-          {otsPrice && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-[#24C6F5]/15 text-[#24C6F5] border border-[#24C6F5]/30 font-mono leading-none">
-                OTS
-              </span>
-              <span className="text-[13px] sm:text-[14px] font-semibold text-[#24C6F5] leading-none">
-                IDR {Number(otsPrice).toLocaleString('id-ID')}
-              </span>
-            </div>
-          )}
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1.5 leading-relaxed">
+            Tiket Cheki eksklusif bersama seluruh member NOIZE dalam satu sesi. Abadikan momen spesial bareng semua member!
+          </p>
         </div>
 
-        {/* Stepper / Tombol + Tambah (Tinggi min 40px) */}
-        <div className="w-full sm:w-44">
-          {inCartQty > 0 ? (
-            <div className="w-full h-10 rounded-xl bg-[#1E1C2E] border border-[#272438] flex items-center justify-between p-1">
-              <button
-                type="button"
-                onClick={() => onUpdateQty(-1)}
-                className="w-10 h-full flex items-center justify-center rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                title="Kurangi"
-              >
-                <FaMinus className="text-[9px]" />
-              </button>
-              <span className="text-sm font-bold text-white font-mono px-2">
-                {inCartQty}
+        <div className="flex flex-col gap-3">
+          {/* Harga PO & OTS dalam 2 chip sejajar */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Chip PO (Ungu) */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#9D26FF]/10 border border-[#9D26FF]/30">
+              <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-[#9D26FF]/20 text-[#9D26FF] font-mono leading-none">
+                PO
               </span>
+              <span
+                className="text-sm sm:text-base font-black leading-none font-mono"
+                style={{ color: accentColor || '#9D26FF' }}
+              >
+                IDR {Number(price).toLocaleString('id-ID')}
+              </span>
+            </div>
+
+            {/* Chip OTS (Cyan - Hanya jika ada di CMS) */}
+            {otsPrice && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#24C6F5]/10 border border-[#24C6F5]/30">
+                <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-[#24C6F5]/20 text-[#24C6F5] font-mono leading-none">
+                  OTS
+                </span>
+                <span className="text-sm sm:text-base font-black text-[#24C6F5] leading-none font-mono">
+                  IDR {Number(otsPrice).toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Stepper / Tombol + Tambah Full Width */}
+          <div className="w-full">
+            {inCartQty > 0 ? (
+              <div className="w-full h-11 rounded-xl bg-[#1E1C2E] border border-[#9D26FF]/40 flex items-center justify-between p-1">
+                <button
+                  type="button"
+                  onClick={() => onUpdateQty(-1)}
+                  className="w-11 h-full flex items-center justify-center rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  title="Kurangi"
+                >
+                  <FaMinus className="text-[10px]" />
+                </button>
+                <span className="text-sm font-bold text-white font-mono px-3">
+                  {inCartQty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onUpdateQty(1)}
+                  className="w-11 h-full flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9D26FF] hover:text-white transition-colors cursor-pointer"
+                  style={accentColor ? { color: accentColor } : {}}
+                  title="Tambah"
+                >
+                  <FaPlus className="text-[10px]" />
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
-                onClick={() => onUpdateQty(1)}
-                className="w-10 h-full flex items-center justify-center rounded-lg hover:bg-white/10 text-[#9D26FF] hover:text-white transition-colors cursor-pointer"
-                style={accentColor ? { color: accentColor } : {}}
-                title="Tambah"
+                aria-label={`Tambah ${name}`}
+                onClick={onAdd}
+                className="w-full h-11 rounded-xl bg-gradient-to-r from-[#9D26FF] to-fuchsia-600 hover:from-[#8A1AD6] hover:to-fuchsia-500 text-white flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider transition-all active:scale-[0.98] cursor-pointer shadow-[0_6px_20px_rgba(157,38,255,0.35)] hover:shadow-[0_8px_25px_rgba(217,70,239,0.45)]"
               >
-                <FaPlus className="text-[9px]" />
+                <FaPlus className="text-[10px]" />
+                <span>Tambah</span>
               </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              aria-label={`Tambah ${name}`}
-              onClick={onAdd}
-              className="w-full h-10 rounded-xl bg-[#1E1C2E] border border-[#272438] hover:border-[#9D26FF] hover:bg-[#9D26FF] hover:text-white text-zinc-200 flex items-center justify-center gap-1.5 font-bold text-xs sm:text-sm transition-all active:scale-98 cursor-pointer shadow-sm"
-            >
-              <FaPlus className="text-[10px]" />
-              <span>Tambah</span>
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -452,9 +462,9 @@ const ChekiSection = ({
           ───────────────────────────────────────────────────────────── */}
       {currentEvent && (
         <div ref={dropdownRef} className="relative w-full">
-          <div className="w-full bg-[#13121D] border border-[#272438] rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+          <div className="w-full bg-[#13121D] border border-[#272438] rounded-2xl p-3 sm:p-4 flex flex-row items-center justify-between gap-2.5 sm:gap-4 shadow-md">
             {/* Kiri & Tengah: Blok Tanggal + Info Event */}
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
               {/* Blok Tanggal (Angka Tanggal Besar, Bulan Singkat di Bawah) */}
               <div 
                 className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#1E1C2E] border flex flex-col items-center justify-center shrink-0 shadow-inner"
@@ -490,10 +500,10 @@ const ChekiSection = ({
             </div>
 
             {/* Kanan: Badge Spesial (Hanya untuk Event Spesial) + Tombol Ganti Event (jika > 1) */}
-            <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+            <div className="flex items-center gap-2 shrink-0 self-center">
               {isSpecial && (
                 <span
-                  className="text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono shrink-0"
+                  className="text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono shrink-0"
                   style={{
                     backgroundColor: `${themeColor}20`,
                     color: themeColor,
@@ -509,11 +519,11 @@ const ChekiSection = ({
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen(prev => !prev)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E1C2E] border border-[#272438] hover:border-white/20 text-xs font-bold text-zinc-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                  className="w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center gap-1.5 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-lg bg-[#1E1C2E] border border-[#272438] hover:border-white/20 text-xs font-bold text-zinc-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
                   aria-label="Ganti Jadwal Event"
                 >
                   <span className="hidden sm:inline">Ganti Event</span>
-                  <FaChevronDown className={`text-[10px] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-white' : ''}`} />
+                  <FaChevronDown className={`text-[11px] sm:text-[10px] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-white' : ''}`} />
                 </button>
               )}
             </div>
