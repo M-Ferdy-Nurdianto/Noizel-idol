@@ -462,7 +462,7 @@ const ChekiSection = ({
           ───────────────────────────────────────────────────────────── */}
       {currentEvent && (
         <div ref={dropdownRef} className="relative w-full">
-          <div className="w-full bg-[#13121D] border border-[#272438] rounded-2xl p-3 sm:p-4 flex flex-row items-center justify-between gap-2.5 sm:gap-4 shadow-md">
+          <div className="w-full bg-[#13121D] border border-[#272438] rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-md">
             {/* Kiri & Tengah: Blok Tanggal + Info Event */}
             <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
               {/* Blok Tanggal (Angka Tanggal Besar, Bulan Singkat di Bawah) */}
@@ -499,34 +499,36 @@ const ChekiSection = ({
               </div>
             </div>
 
-            {/* Kanan: Badge Spesial (Hanya untuk Event Spesial) + Tombol Ganti Event (jika > 1) */}
-            <div className="flex items-center gap-2 shrink-0 self-center">
-              {isSpecial && (
-                <span
-                  className="text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono shrink-0"
-                  style={{
-                    backgroundColor: `${themeColor}20`,
-                    color: themeColor,
-                    border: `1px solid ${themeColor}40`
-                  }}
-                >
-                  {currentEvent.theme_name || 'Spesial'}
-                </span>
-              )}
+            {/* Kanan: Badge Spesial (Hanya untuk Event Spesial) + Tombol Pilih Event Lain (jika > 1) */}
+            {(isSpecial || sortedEvents.length > 1) && (
+              <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0">
+                {isSpecial && (
+                  <span
+                    className="text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono shrink-0"
+                    style={{
+                      backgroundColor: `${themeColor}20`,
+                      color: themeColor,
+                      border: `1px solid ${themeColor}40`
+                    }}
+                  >
+                    {currentEvent.theme_name || 'Spesial'}
+                  </span>
+                )}
 
-              {/* Kalau ada lebih dari 1 event, tambahkan tombol ganti event */}
-              {sortedEvents.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen(prev => !prev)}
-                  className="w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center gap-1.5 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-lg bg-[#1E1C2E] border border-[#272438] hover:border-white/20 text-xs font-bold text-zinc-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
-                  aria-label="Ganti Jadwal Event"
-                >
-                  <span className="hidden sm:inline">Ganti Event</span>
-                  <FaChevronDown className={`text-[11px] sm:text-[10px] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-white' : ''}`} />
-                </button>
-              )}
-            </div>
+                {/* Kalau ada lebih dari 1 event, tambahkan tombol pilih event lain */}
+                {sortedEvents.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(prev => !prev)}
+                    className="flex-1 sm:flex-initial flex items-center justify-between sm:justify-center gap-2 px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#1E1C2E] border border-[#272438] hover:border-white/20 text-xs font-bold text-zinc-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                    aria-label="Pilih Event Lain"
+                  >
+                    <span>Pilih Event Lain</span>
+                    <FaChevronDown className={`text-[10px] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-white' : ''}`} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Dropdown Menu Popover (Jika Tombol Ganti Event Diklik) */}
