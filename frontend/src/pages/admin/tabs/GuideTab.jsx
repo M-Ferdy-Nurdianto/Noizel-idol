@@ -324,9 +324,12 @@ const GuideTab = ({ setActiveTab }) => {
       <div className="bg-[#13121D]/80 border border-amber-500/25 rounded-2xl p-4 flex items-start gap-3 text-xs text-zinc-300">
         <FaShieldAlt className="text-amber-400 text-base shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="font-bold text-amber-300">Catatan Akses & Keamanan</p>
+          <p className="font-bold text-amber-300">Catatan Akses, Keamanan & Retensi Data Otomatis</p>
           <p className="leading-relaxed">
             Setiap perubahan di tab <strong>Events</strong>, <strong>Members</strong>, <strong>Merchandise</strong>, <strong>Home</strong>, <strong>About Us</strong>, dan <strong>Settings</strong> langsung berdampak ke website publik. Pastikan selalu logout setelah selesai menggunakan perangkat bersama.
+          </p>
+          <p className="leading-relaxed text-zinc-400">
+            <strong>Retensi Data:</strong> Foto bukti pembayaran PO otomatis dihapus setelah <strong>1 bulan (30 hari)</strong>, sedangkan event beserta seluruh data order-nya otomatis dihapus dari database setelah <strong>2 bulan (60 hari)</strong> sejak tanggal event agar database tetap bersih. Pastikan export laporan (PDF/Excel) sebelum melewati 2 bulan.
           </p>
         </div>
       </div>

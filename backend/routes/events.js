@@ -6,7 +6,12 @@ import { deletePaymentProofFiles } from '../utils/storageCleaner.js'
 
 const router = express.Router()
 
-// Auto cleanup helper: purge payment proof images from orders older than 30 days (fire-and-forget)
+const MONTH_MAP = {
+  'Januari': 0, 'Februari': 1, 'Maret': 2, 'April': 3, 'Mei': 4, 'Juni': 5,
+  'Juli': 6, 'Agustus': 7, 'September': 8, 'Oktober': 9, 'November': 10, 'Desember': 11
+}
+
+// Auto cleanup helper: purge payment proof images (> 30 days) & expired events + orders (> 60 days / 2 months)
 let lastCleanupTime = 0
 const tryAutoPurgeOldPayments = async () => {
   const now = Date.now()
@@ -41,6 +46,85 @@ const tryAutoPurgeOldPayments = async () => {
     }
   } catch (e) {
     console.error('[AutoPurge] Background payment cleanup failed:', e.message)
+  }
+
+  // Purge events & all associated orders older than 60 days (2 months)
+  try {
+    const twoMonthsAgo = new Date()
+    twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60)
+    twoMonthsAgo.setHours(0, 0, 0, 0)
+
+    const { data: allEvents } = await supabase
+      .from('events')
+      .select('id, tanggal, bulan, tahun')
+
+    if (!allEvents || allEvents.length === 0) return
+
+    const expiredIds = allEvents
+      .filter(ev => {
+        const mIdx = MONTH_MAP[ev.bulan]
+        if (mIdx === undefined || !ev.tahun || !ev.tanggal) return false
+        const evDate = new Date(ev.tahun, mIdx, ev.tanggal)
+        return evDate < twoMonthsAgo
+      })
+      .map(ev => ev.id)
+
+    if (expiredIds.length === 0) return
+
+    // 1. Collect orders belonging to expired events (by event_id or order_items.event_id)
+    const { data: directOrders } = await supabase
+      .from('orders')
+      .select('id, payment_proof_url')
+      .in('event_id', expiredIds)
+
+    const { data: itemRefs } = await supabase
+      .from('order_items')
+      .select('order_id')
+      .in('event_id', expiredIds)
+
+    const directOrderIds = (directOrders || []).map(o => o.id)
+    const refOrderIds = (itemRefs || []).map(i => i.order_id).filter(Boolean)
+    const affectedOrderIds = Array.from(new Set([...directOrderIds, ...refOrderIds]))
+
+    // Delete any remaining payment proof files for orders being removed
+    if (directOrders && directOrders.length > 0) {
+      const proofUrls = directOrders
+        .map(o => o.payment_proof_url)
+        .filter(url => url && (url.startsWith('http://') || url.startsWith('https://')))
+      if (proofUrls.length > 0) {
+        await deletePaymentProofFiles(proofUrls, 'payment-proofs')
+      }
+    }
+
+    // 2. Delete order_items for expired events
+    await supabase.from('order_items').delete().in('event_id', expiredIds)
+    if (directOrderIds.length > 0) {
+      await supabase.from('order_items').delete().in('order_id', directOrderIds)
+      await supabase.from('orders').delete().in('id', directOrderIds)
+    }
+
+    // Remove any multi-event orders that now have 0 remaining items
+    const remainingIds = affectedOrderIds.filter(id => !directOrderIds.includes(id))
+    if (remainingIds.length > 0) {
+      const { data: stillHasItems } = await supabase
+        .from('order_items')
+        .select('order_id')
+        .in('order_id', remainingIds)
+      const keepSet = new Set((stillHasItems || []).map(i => i.order_id))
+      const emptyOrderIds = remainingIds.filter(id => !keepSet.has(id))
+      if (emptyOrderIds.length > 0) {
+        await supabase.from('orders').delete().in('id', emptyOrderIds)
+      }
+    }
+
+    // 3. Delete event relations & events
+    await supabase.from('event_lineup').delete().in('event_id', expiredIds)
+    await supabase.from('event_gallery').delete().in('event_id', expiredIds)
+    await supabase.from('events').delete().in('id', expiredIds)
+
+    console.log(`[AutoPurge] Deleted ${expiredIds.length} expired event(s) (> 60 days) and associated orders`)
+  } catch (e) {
+    console.error('[AutoPurge] Background event cleanup failed:', e.message)
   }
 }
 
