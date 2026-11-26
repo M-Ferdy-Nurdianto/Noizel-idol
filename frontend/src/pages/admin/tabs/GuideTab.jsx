@@ -19,15 +19,15 @@ import {
 } from 'react-icons/fa'
 
 const MUST_DO = [
-  'Cek Bukti Pembayaran dulu sebelum mengubah status PO jadi Checked.',
-  'Pilih event yang benar di filter sebelum mencatat Order OTS.',
-  'Cek Live Preview (Desktop & Mobile) setelah mengubah foto atau isi halaman.'
+  'Cek Bukti Pembayaran dulu sebelum mengubah status PO jadi Checked agar hitungan di Recap dan Export sesuai.',
+  'Pilih event yang sesuai di filter Orders sebelum mencatat Order OTS supaya masuk ke event yang benar.',
+  'Cek Live Preview (Desktop & Mobile) setelah mengatur foto Hero atau konten halaman depan sebelum menekan Simpan.'
 ]
 
 const DO_NOT = [
-  'Jangan ubah status ke Completed sebelum cheki atau merch diterima pembeli.',
-  'Jangan hapus Event atau Member yang sudah punya transaksi. Cukup nonaktifkan atau tandai selesai.',
-  'Jangan ubah harga atau aturan biaya saat penjualan berjalan tanpa persetujuan tim.'
+  'Jangan hapus Event atau Member yang masih punya transaksi. Tandai selesai atau nonaktifkan agar data Recap tidak hilang.',
+  'Jangan unggah foto terlalu kecil atau rasio salah (3:4 profil, 4:5 Shop) agar gambar di website tidak pecah atau terpotong.',
+  'Jangan lupa mematikan Maintenance setelah selesai mengedit, karena pengunjung tidak bisa membuka website selama mode ini aktif.'
 ]
 
 const GUIDE_SECTIONS = [
@@ -36,117 +36,117 @@ const GUIDE_SECTIONS = [
     tabId: 'orders',
     title: '1. Orders',
     icon: FaShoppingCart,
-    summary: 'Buka ini untuk mengecek atau mencatat pesanan.',
+    summary: 'Mengelola daftar pesanan Cheki dan Merch serta mencatat Order OTS.',
     steps: [
-      'Pilih jenis pesanan di bagian atas: All, OTS, PO, Special, atau Merch.',
-      'Pada pesanan PO, klik "Lihat Bukti" untuk memastikan pembeli sudah transfer atau bayar QRIS.',
-      'Ubah status bertahap: Unchecked → Checked → Completed.',
-      'Untuk pesanan OTS, pilih event di filter dulu, lalu klik "+ Order OTS". Isi nama pembeli, pilih cara bayar (Cash atau QRIS) dan member, lalu klik Simpan.',
-      'Klik "Export Data" untuk mengunduh laporan PDF atau Excel.'
+      'Pilih filter tab di atas: All, OTS, PO, Special, atau Merch untuk melihat jenis pesanan tertentu.',
+      'Pada pesanan PO, klik "Lihat Bukti" untuk membuka foto bukti transfer atau QRIS yang diunggah pembeli.',
+      'Ubah status pesanan di dropdown: Unchecked (baru masuk) → Checked (lunas) → Completed (selesai).',
+      'Untuk mencatat Order OTS, pilih event di filter dulu lalu klik "+ Order OTS". Isi nama pembeli, pilih Cash atau QRIS, pilih member, lalu klik Simpan.',
+      'Klik "Export Data" untuk mengunduh laporan pesanan dalam format PDF atau Excel.'
     ],
-    tips: 'Cek nominal dan foto bukti transfer sebelum status Checked. Pastikan filter event sudah benar sebelum membuka form OTS.',
-    caution: 'Jangan ubah ke Completed kalau barang belum benar-benar diterima pembeli. Jangan hapus pesanan asli, kecuali pesanan ganda atau uji coba.'
+    tips: 'Status Checked dan Completed otomatis terhitung rapi di halaman Recap dan file Export PDF/Excel.',
+    caution: 'Menghapus pesanan bersifat permanen dan langsung mengurangi total di Recap. Gunakan hanya untuk data ganda atau uji coba.'
   },
   {
     id: 'events',
     tabId: 'events',
     title: '2. Events',
     icon: FaCalendar,
-    summary: 'Buka ini untuk mengatur jadwal event dan member yang tampil.',
+    summary: 'Mengatur jadwal acara yang tampil di beranda dan halaman Shop.',
     steps: [
-      'Klik "+ Tambah Event". Isi nama, tanggal, lokasi, jam event, dan jam cheki.',
-      'Di bagian Lineup, centang member yang hadir. Member yang tidak dicentang akan tampil "Not Attending" di halaman Shop.',
-      'Untuk event spesial, aktifkan "Special Event", isi tema dan warna, lalu pilih OTS aktif atau tidak.',
-      'Event yang sudah lewat: ubah statusnya jadi selesai agar hilang dari pilihan.'
+      'Klik "+ Tambah Event", lalu isi nama event, tanggal, lokasi, jam event, dan jam cheki.',
+      'Di bagian Lineup, centang member yang ikut. Member yang tidak dicentang otomatis tampil "Not Attending" di Shop dan tidak muncul di form OTS.',
+      'Untuk acara khusus, aktifkan "Special Event", isi nama tema, warna, serta atur apakah OTS dan harga khusus diaktifkan.',
+      'Jika acara sudah lewat, ubah statusnya menjadi selesai agar tidak lagi muncul sebagai pilihan aktif di Shop.'
     ],
-    tips: 'Cek Lineup paling lambat H-1 sebelum acara. Tulis jam event dan jam cheki dengan jelas agar rapi di halaman utama dan Shop.',
-    caution: 'Jangan hapus event yang sudah punya transaksi, cukup tandai selesai. Klik Simpan sebelum menutup form.'
+    tips: 'Jadwal yang aktif di sini otomatis tampil di bagian Schedule halaman depan dan dropdown pilih event di halaman Shop.',
+    caution: 'Jangan menghapus event yang sudah memiliki pesanan. Tandai selesai saja agar riwayat transaksi dan Recap tetap aman.'
   },
   {
     id: 'members',
     tabId: 'members',
     title: '3. Members',
     icon: FaUsers,
-    summary: 'Buka ini untuk mengatur profil grup dan member.',
+    summary: 'Mengatur data grup NOIZE dan profil tiap member di website.',
     steps: [
-      'Di kartu NOIZE (grup) paling atas, atur foto grup, foto Shop, tagline, Instagram resmi, dan status Group Cheki.',
-      'Klik "Edit" pada member, atau "+ Tambah Member". Isi nama panggilan, tanggal lahir, hobi, jikoshoukai, Instagram, dan urutan tampil.',
-      'Unggah Foto Profil (rasio 3:4) dan Foto Shop (rasio 4:5).'
+      'Pada kartu NOIZE (grup) di atas, atur foto grup, foto Shop, tagline, Instagram resmi, dan saklar aktif/nonaktif Group Cheki.',
+      'Klik "Edit" pada member atau "+ Tambah Member" untuk mengisi nama panggung, tanggal lahir, hobi, jikoshoukai, Instagram, dan angka urutan.',
+      'Unggah Foto Profil (rasio 3:4) untuk halaman About Us / daftar member dan Foto Shop (rasio 4:5) untuk kartu Cheki.'
     ],
-    tips: 'Pakai foto yang terang dan jelas. Atur angka urutan untuk menentukan posisi member di halaman.',
-    caution: 'Jangan hapus member yang masih terhubung dengan pesanan lama. Kalau member sedang hiatus, nonaktifkan saja.'
+    tips: 'Angka urutan menentukan posisi member dari kiri ke kanan di halaman About Us dan Shop. Matikan saklar Group Cheki jika sesi grup sedang tidak dibuka.',
+    caution: 'Menonaktifkan status hadir member lebih aman daripada menghapus member, karena data pesanan lama tetap utuh.'
   },
   {
     id: 'merch',
     tabId: 'merch',
     title: '4. Merchandise',
     icon: FaBox,
-    summary: 'Buka ini untuk mengatur produk dan penjualan merch.',
+    summary: 'Mengatur batch PO, katalog produk, stok, dan foto merch di Shop.',
     steps: [
-      'Buat atau aktifkan Batch Merch dulu, supaya produk terkelompok per periode PO.',
-      'Klik "+ Tambah Merch". Isi nama, harga, stok, kategori, deskripsi, dan varian atau ukuran.',
-      'Unggah foto produk dan foto size chart (kalau ada).',
-      'Klik "Duplikat" untuk membuat produk baru dari produk lama.'
+      'Buat atau aktifkan Batch Merch terlebih dahulu untuk mengelompokkan produk berdasarkan periode rilis.',
+      'Klik "+ Tambah Merch", lalu isi nama produk, harga, stok, kategori, deskripsi, dan pilihan varian atau ukuran.',
+      'Unggah foto utama produk dan foto size chart (jika ada).',
+      'Gunakan tombol "Duplikat" untuk membuat produk baru dengan format yang mirip.'
     ],
-    tips: 'Kalau stok diisi 0, produk otomatis tampil SOLD OUT. Pasang size chart yang jelas untuk kaos atau hoodie.',
-    caution: 'Jangan hapus batch yang pesanannya masih berjalan. Jangan ubah harga saat penjualan ramai tanpa konfirmasi tim.'
+    tips: 'Jika stok diisi 0 atau Batch Merch ditutup, produk otomatis berubah menjadi SOLD OUT di halaman Shop.',
+    caution: 'Jangan menghapus Batch Merch yang masih memiliki pesanan aktif karena data pesanan terkait bisa ikut terdampak.'
   },
   {
     id: 'home',
     tabId: 'home',
     title: '5. Home',
     icon: FaHome,
-    summary: 'Buka ini untuk mengatur tampilan halaman depan.',
+    summary: 'Mengatur foto Hero, teks perkenalan, dan daftar FAQ di beranda.',
     steps: [
-      'Buka bagian Hero. Atur foto desktop dan mobile tiap member, lalu geser posisi atau zoom lewat Live Preview.',
-      'Edit teks "Who Is Noize" untuk memperbarui pengenalan grup.',
-      'Di bagian FAQ, tambah, ubah, atau hapus pertanyaan yang sering ditanyakan.'
+      'Buka bagian Hero untuk mengganti foto desktop dan mobile tiap member, lalu atur posisi atau zoom lewat Live Preview.',
+      'Edit bagian "Who Is Noize" untuk mengubah teks perkenalan grup di halaman utama.',
+      'Buka bagian FAQ untuk menambah, mengubah, atau menghapus daftar tanya-jawab di halaman depan.'
     ],
-    tips: 'Selalu cek Live Preview Desktop dan Mobile sebelum menekan Simpan. Tulis jawaban FAQ singkat dan jelas.',
-    caution: 'Jangan unggah foto beresolusi terlalu kecil karena jadi pecah. Jangan lupa klik Simpan setelah menggeser foto.'
+    tips: 'Gunakan tombol switch Desktop dan Mobile di Live Preview agar posisi wajah member tidak terpotong di layar HP maupun komputer.',
+    caution: 'Perubahan posisi foto di Hero belum tersimpan ke website sebelum tombol Simpan diklik.'
   },
   {
     id: 'about',
     tabId: 'about',
     title: '6. About Us',
     icon: FaInfoCircle,
-    summary: 'Buka ini untuk mengatur cerita, media, dan kontak.',
+    summary: 'Mengatur cerita grup, galeri foto, tautan media, dan kontak.',
     steps: [
-      'Edit teks cerita, judul bagian, dan kontak manager resmi.',
-      'Di bagian Media, atur galeri foto, video YouTube, dan rilisan Spotify.',
-      'Klik "Simpan Perubahan" di tiap bagian setelah selesai.'
+      'Ubah teks cerita, judul bagian, dan info kontak manager yang tampil di halaman About Us.',
+      'Pada bagian Media, tambahkan atau perbarui foto carousel, link video YouTube, dan link lagu/album Spotify.',
+      'Klik "Simpan Perubahan" di masing-masing bagian setelah selesai.'
     ],
-    tips: 'Pastikan link YouTube dan Spotify bisa dibuka publik. Pakai foto galeri berorientasi landscape.',
-    caution: 'Jangan cantumkan nomor pribadi di luar kontak manager resmi. Jangan pasang link video atau lagu yang bersifat private.'
+    tips: 'Gunakan link YouTube dan Spotify yang bersifat publik agar pemutar media bisa langsung tampil di halaman About Us.',
+    caution: 'Link video atau lagu yang berstatus private tidak akan muncul di website.'
   },
   {
     id: 'recap',
     tabId: 'recap',
     title: '7. Recap',
     icon: FaChartBar,
-    summary: 'Buka ini untuk melihat ringkasan penjualan.',
+    summary: 'Melihat grafik dan ringkasan pemasukan Cheki serta Merch.',
     steps: [
-      'Pilih tampilan Cheki atau Merch di bagian atas.',
-      'Pakai filter Event untuk melihat total pemasukan dan jumlah tiket di event tertentu.',
-      'Lihat grafik PO vs OTS untuk membandingkan penjualan tiap member.'
+      'Pilih mode tampilan Cheki atau Merch di bagian atas halaman.',
+      'Gunakan filter Event untuk melihat total pemasukan dan jumlah tiket terjual pada acara tertentu.',
+      'Lihat grafik perbandingan PO vs OTS untuk memantau jumlah penjualan per member.'
     ],
-    tips: 'Pakai data Recap setelah semua pesanan berstatus Checked atau Completed. Bandingkan angkanya dengan hasil Export saat event selesai.',
-    caution: 'Jangan anggap angka Recap sudah final kalau masih ada pesanan Unchecked atau batal.'
+    tips: 'Angka di Recap dihitung otomatis dari data pesanan di tab Orders, sehingga akan langsung ikut berubah saat ada order baru atau status diperbarui.',
+    caution: 'Pesanan yang masih berstatus Unchecked atau dibatalkan tetap memengaruhi tampilan jika belum dibersihkan.'
   },
   {
     id: 'settings',
     tabId: 'settings',
     title: '8. Settings',
     icon: FaEdit,
-    summary: 'Buka ini untuk harga, pembayaran, sosmed, dan Maintenance.',
+    summary: 'Mengatur harga default, QRIS, rekening, sosmed, dan Maintenance.',
     steps: [
-      'Atur harga PO Member, PO Grup, OTS Member, dan OTS Grup.',
-      'Unggah gambar QRIS dan isi rekening bank untuk halaman Checkout.',
-      'Perbarui link Instagram, TikTok, YouTube, X, Discord, dan WhatsApp.',
-      'Aktifkan Maintenance saat website sedang diperbaiki (admin tetap bisa melihat website).'
+      'Atur harga default untuk PO Member, PO Grup, OTS Member, dan OTS Grup.',
+      'Unggah gambar QRIS dan isi nomor rekening bank yang ditampilkan saat pembeli melakukan Checkout.',
+      'Perbarui tautan Instagram, TikTok, YouTube, X, Discord, dan WhatsApp yang muncul di footer dan halaman kontak.',
+      'Aktifkan saklar Maintenance saat website sedang diperbaiki (pengunjung melihat halaman perbaikan, admin yang login tetap bisa membuka website).'
     ],
-    tips: 'Setelah ganti QRIS, coba lihat tampilannya di halaman Checkout. Matikan Maintenance segera setelah perbaikan selesai.',
-    caution: 'Jangan ubah harga atau biaya tanpa persetujuan penanggung jawab. Jangan biarkan Maintenance menyala tanpa info kapan website buka lagi.'
+    tips: 'Harga default ini otomatis dipakai untuk semua event reguler, kecuali event spesial yang memakai harga khusus sendiri.',
+    caution: 'Pastikan gambar QRIS terbaca jelas saat diuji di halaman Checkout, dan matikan Maintenance jika perbaikan sudah selesai.'
   }
 ]
 
@@ -190,10 +190,10 @@ const GuideTab = ({ setActiveTab }) => {
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Panduan Admin & Staff
+                Panduan Website & Dashboard
               </h2>
               <p className="text-[15px] text-zinc-300 mt-1 leading-relaxed">
-                Panduan singkat mengurus dashboard NOIZE, langkah demi langkah.
+                Panduan singkat cara kerja dan pengaturan isi website NOIZE.
               </p>
             </div>
           </div>
